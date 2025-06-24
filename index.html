@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Radar Chart Widget</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 20px;
+    }
+    canvas {
+      max-width: 600px;
+    }
+  </style>
+</head>
+<body>
+  <h2>Profil environnemental du projet</h2>
+  <canvas id="radarChart"></canvas>
+
+  <script>
+    const data = {
+      labels: [
+        "Système DD", 
+        "Énergie", 
+        "Bas carbone", 
+        "Économie durable", 
+        "Mobilité douce", 
+        "Acteurs locaux", 
+        "Confort air/eau",
+        "Confort visuel",
+        "Confort été",
+        "Inégalités/sécurité",
+        "Biodiversité",
+        "Sols",
+        "Eau",
+        "Gestion durable"
+      ],
+      datasets: [{
+        label: "Notes du projet",
+        data: [2.5, 3, 1.5, 2, 2, 1, 3, 2, 2.5, 2, 3, 1.5, 2, 2.5],  // ← Tu modifieras ici les vraies données
+        fill: true,
+        backgroundColor: "rgba(54, 162, 235, 0.2)",
+        borderColor: "rgba(54, 162, 235, 1)",
+        pointBackgroundColor: "rgba(54, 162, 235, 1)"
+      }]
+    };
+
+    const config = {
+      type: 'radar',
+      data: data,
+      options: {
+        scales: {
+          r: {
+            beginAtZero: true,
+            suggestedMax: 3
+          }
+        }
+      }
+    };
+
+    new Chart(document.getElementById('radarChart'), config);
+  </script>
+</body>
+</html>
