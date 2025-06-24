@@ -1,65 +1,247 @@
 <!DOCTYPE html>
-<html>
+<html lang="fr">
 <head>
   <meta charset="UTF-8" />
   <title>Radar Chart Widget</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <style>
-    body {
-      font-family: sans-serif;
-      padding: 20px;
-    }
-    canvas {
-      max-width: 600px;
-    }
-  </style>
 </head>
 <body>
-  <h2>Profil environnemental du projet</h2>
-  <canvas id="radarChart"></canvas>
+  <div style="width: 600px; height: 600px;">
+    <canvas id="radarChart"></canvas>
+  </div>
 
   <script>
-    const data = {
-      labels: [
-        "Système DD", 
-        "Énergie", 
-        "Bas carbone", 
-        "Économie durable", 
-        "Mobilité douce", 
-        "Acteurs locaux", 
-        "Confort air/eau",
-        "Confort visuel",
-        "Confort été",
-        "Inégalités/sécurité",
-        "Biodiversité",
-        "Sols",
-        "Eau",
-        "Gestion durable"
-      ],
-      datasets: [{
-        label: "Notes du projet",
-        data: [2.5, 3, 1.5, 2, 2, 1, 3, 2, 2.5, 2, 3, 1.5, 2, 2.5],  // ← Tu modifieras ici les vraies données
-        fill: true,
-        backgroundColor: "rgba(54, 162, 235, 0.2)",
-        borderColor: "rgba(54, 162, 235, 1)",
-        pointBackgroundColor: "rgba(54, 162, 235, 1)"
-      }]
-    };
+    // --- 1. Liste complète des colonnes ---
+    function getNoteKeys() {
+      return [
+        "SMDD - Note Programmation - Système de management dev. Durable",
+        "SMDD - Note Conception - Système de management dev. Durable",
+        "SMDD - Note Travaux - Système de management dev. Durable",
+        "SMDD - Note Maximale - Système de management dev. Durable",
 
-    const config = {
-      type: 'radar',
-      data: data,
-      options: {
-        scales: {
-          r: {
-            beginAtZero: true,
-            suggestedMax: 3
+        "GES - Note Programmation - Energie",
+        "GES - Note Programmation - Bas carbone",
+        "GES - Note Conception - Energie",
+        "GES - Note Conception - Bas carbone",
+        "GES - Note Travaux - Energie",
+        "GES - Note Travaux - Bas carbone",
+        "GES - Note Maximale - Energie",
+        "GES - Note Maximale - Bas carbone",
+
+        "Territoire - Note Programmation - économie de projet durable",
+        "Territoire - Note Programmation - association des acteurs locaux",
+        "Territoire - Note Programmation - mobilité douce",
+        "Territoire - Note Conception - économie de projet durable",
+        "Territoire - Note Conception - association des acteurs locaux",
+        "Territoire - Note Conception - mobilité douce",
+        "Territoire - Note Travaux - économie de projet durable",
+        "Territoire - Note Travaux - association des acteurs locaux",
+        "Territoire - Note Travaux - mobilité douce",
+        "Territoire - Note Maximale - économie de projet durable",
+        "Territoire - Note Maximale - association des acteurs locaux",
+        "Territoire - Note Maximale - mobilité douce",
+
+        "Santé - Note Programmation - Ventilation/qualité de l'air et de l'eau",
+        "Santé - Note Programmation - Confort visuel/acoustique",
+        "Santé - Note Programmation - Confort d'été / bioclimatique",
+        "Santé - Note Programmation - Réduction des inégalités et sécurité",
+        "Santé - Note Conception - Ventilation/qualité de l'air et de l'eau",
+        "Santé - Note Conception - Confort visuel/acoustique",
+        "Santé - Note Conception - Confort d'été / bioclimatique",
+        "Santé - Note Conception - Réduction des inégalités et sécurité",
+        "Santé - Note Travaux - Ventilation/qualité de l'air et de l'eau",
+        "Santé - Note Travaux - Confort visuel/acoustique",
+        "Santé - Note Travaux - Confort d'été / bioclimatique",
+        "Santé - Note Travaux - Réduction des inégalités et sécurité",
+        "Santé - Note Maximale - Ventilation/qualité de l'air et de l'eau",
+        "Santé - Note Maximale - Confort visuel/acoustique",
+        "Santé - Note Maximale - Confort d'été / bioclimatique",
+        "Santé - Note Maximale - Réduction des inégalités et sécurité",
+
+        "biodiv & protec écosyst - Note Programmation - Biodiversité",
+        "biodiv & protec écosyst - Note Programmation - Lutte contre l'artificialisation des sols",
+        "biodiv & protec écosyst - Note Programmation - Préservation de la ressource en eau",
+        "biodiv & protec écosyst - Note Conception - Biodiversité",
+        "biodiv & protec écosyst - Note Conception - Lutte contre l'artificialisation des sols",
+        "biodiv & protec écosyst - Note Conception - Préservation de la ressource en eau",
+        "biodiv & protec écosyst - Note Travaux - Biodiversité",
+        "biodiv & protec écosyst - Note Travaux - Lutte contre l'artificialisation des sols",
+        "biodiv & protec écosyst - Note Travaux - Préservation de la ressource en eau",
+        "biodiv & protec écosyst - Note Maximale - Biodiversité",
+        "biodiv & protec écosyst - Note Maximale - Lutte contre l'artificialisation des sols",
+        "biodiv & protec écosyst - Note Maximale - Préservation de la ressource en eau",
+
+        "Gestion patrimoine - Note Programmation - gestion durable",
+        "Gestion patrimoine - Note Conception - gestion durable",
+        "Gestion patrimoine - Note Travaux - gestion durable",
+        "Gestion patrimoine - Note Maximale - gestion durable"
+      ];
+    }
+
+    // --- 2. Extraction des infos de chaque colonne ---
+    function parseKey(key) {
+      const parts = key.split(" - ");
+      const thematique = parts[0].trim();
+      let typeNote = "";
+      let sousThematique = "";
+
+      if (parts.length === 3) {
+        typeNote = parts[1].replace("Note ", "").trim();
+        sousThematique = parts[2].trim();
+      } else if (parts.length >= 4) {
+        typeNote = parts[1].replace("Note ", "").trim();
+        sousThematique = parts.slice(2).join(" - ").trim();
+      }
+      return { thematique, sousThematique, typeNote };
+    }
+
+    // --- 3. Récupération et préparation des données ---
+    async function getDataRadar() {
+      const table = await widgetApi.getTable("Table Evaluations");
+      const records = await table.getRecords({limit: 1});
+      if (!records.length) {
+        return null;
+      }
+      const record = records[0];
+      const keys = getNoteKeys();
+
+      const dataMap = {};
+
+      keys.forEach(key => {
+        const {thematique, sousThematique, typeNote} = parseKey(key);
+        if (!dataMap[sousThematique]) {
+          dataMap[sousThematique] = { thematique };
+        }
+
+        const val = record.getCellValue(key);
+        dataMap[sousThematique][typeNote.toLowerCase()] = typeof val === "number" ? val : 0;
+      });
+
+      for (const sousThematique in dataMap) {
+        const obj = dataMap[sousThematique];
+        const maxVal = obj.maximale || 1;
+        obj.programmation = (obj.programmation || 0) / maxVal * 3;
+        obj.conception = (obj.conception || 0) / maxVal * 3;
+        obj.travaux = (obj.travaux || 0) / maxVal * 3;
+      }
+
+      return dataMap;
+    }
+
+    // --- 4. Préparation des données pour Chart.js ---
+    function prepareChartData(dataMap) {
+      const labels = Object.keys(dataMap);
+      const programmationData = [];
+      const conceptionData = [];
+      const travauxData = [];
+      const thematiques = [];
+
+      labels.forEach(label => {
+        const obj = dataMap[label];
+        programmationData.push(obj.programmation);
+        conceptionData.push(obj.conception);
+        travauxData.push(obj.travaux);
+        thematiques.push(obj.thematique);
+      });
+
+      const colorMap = {
+        "SMDD": "rgba(255, 99, 132, 0.2)",
+        "GES": "rgba(54, 162, 235, 0.2)",
+        "Territoire": "rgba(255, 206, 86, 0.2)",
+        "Santé": "rgba(75, 192, 192, 0.2)",
+        "biodiv & protec écosyst": "rgba(153, 102, 255, 0.2)",
+        "Gestion patrimoine": "rgba(255, 159, 64, 0.2)",
+      };
+
+      return {
+        labels,
+        datasets: [
+          {
+            label: "Programmation",
+            data: programmationData,
+            fill: true,
+            backgroundColor: "rgba(255, 99, 132, 0.2)",
+            borderColor: "rgb(255, 99, 132)",
+            pointBackgroundColor: "rgb(255, 99, 132)",
+            tension: 0.3,
+          },
+          {
+            label: "Conception",
+            data: conceptionData,
+            fill: true,
+            backgroundColor: "rgba(54, 162, 235, 0.2)",
+            borderColor: "rgb(54, 162, 235)",
+            pointBackgroundColor: "rgb(54, 162, 235)",
+            tension: 0.3,
+          },
+          {
+            label: "Travaux",
+            data: travauxData,
+            fill: true,
+            backgroundColor: "rgba(255, 206, 86, 0.2)",
+            borderColor: "rgb(255, 206, 86)",
+            pointBackgroundColor: "rgb(255, 206, 86)",
+            tension: 0.3,
+          }
+        ],
+        thematiques,
+        colorMap
+      };
+    }
+
+    // --- 5. Création du graphique radar ---
+    async function createRadarChart() {
+      const dataMap = await getDataRadar();
+      if (!dataMap) {
+        console.error("Aucune donnée disponible");
+        return;
+      }
+
+      const { labels, datasets, thematiques, colorMap } = prepareChartData(dataMap);
+
+      const ctx = document.getElementById('radarChart').getContext('2d');
+
+      // Effacer si un graphique existe déjà
+      if (window.radarChartInstance) {
+        window.radarChartInstance.destroy();
+      }
+
+      window.radarChartInstance = new Chart(ctx, {
+        type: 'radar',
+        data: {
+          labels,
+          datasets
+        },
+        options: {
+          responsive: true,
+          scales: {
+            r: {
+              beginAtZero: true,
+              max: 3,
+              ticks: {
+                stepSize: 1
+              }
+            }
+          },
+          plugins: {
+            legend: {
+              position: 'top',
+            },
+            tooltip: {
+              enabled: true,
+            }
           }
         }
-      }
-    };
+      });
+    }
 
-    new Chart(document.getElementById('radarChart'), config);
+    // --- 6. Initialisation du widget ---
+    async function run() {
+      await createRadarChart();
+    }
+
+    run();
   </script>
 </body>
 </html>
+
