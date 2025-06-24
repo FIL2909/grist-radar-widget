@@ -6,17 +6,13 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
   <style>
-    html, body {
+    body {
       margin: 0;
       padding: 0;
-      height: 100%;
-      width: 100%;
-      font-family: sans-serif;
-      background: #fff;
     }
-    #chart-container {
-      width: 100%;
-      height: 100%;
+    #container {
+      width: 100vw;
+      height: 100vh;
       padding: 20px;
       box-sizing: border-box;
     }
@@ -27,171 +23,118 @@
   </style>
 </head>
 <body>
-  <div id="chart-container">
+  <div id="container">
     <canvas id="radarChart"></canvas>
   </div>
 
   <script>
-    grist.ready();
+    const sousThematiqueLabels = [
+      "SMDD", "GES - Energie", "GES - Bas carbone",
+      "Territoire - économie", "Territoire - acteurs locaux", "Territoire - mobilité douce",
+      "Santé - air/eau", "Santé - confort visuel", "Santé - confort été", "Santé - inégalités",
+      "Biodiv - biodiversité", "Biodiv - sols", "Biodiv - eau",
+      "Patrimoine"
+    ];
 
-    // --- THÉMATIQUES & COULEURS POUR LE FOND ---
-    const THEMATIQUE_COULEURS = {
-      "GES": "rgba(255, 99, 132, 0.15)",
-      "Territoire": "rgba(54, 162, 235, 0.15)",
-      "Santé": "rgba(255, 206, 86, 0.15)",
-      "biodiv & protec écosyst": "rgba(75, 192, 192, 0.15)",
-      "Gestion patrimoine": "rgba(153, 102, 255, 0.15)",
-    };
+    const programmationFields = [
+      "SMDD - Note Programmation",
+      "GES - Note Programmation - Energie",
+      "GES - Note Programmation - Bas carbone",
+      "Territoire - Note Programmation - économie de projet durable",
+      "Territoire - Note Programmation - association des acteurs locaux",
+      "Territoire - Note Programmation - mobilité douce",
+      "Santé - Note Programmation - Ventilation/qualité de l'air et de l'eau",
+      "Santé - Note Programmation - Confort visuel/acoustique",
+      "Santé - Note Programmation - Confort d'été / bioclimatique",
+      "Santé - Note Programmation - Réduction des inégalités et sécurité",
+      "biodiv & protec écosyst - Note Programmation - Biodiversité",
+      "biodiv & protec écosyst - Note Programmation - Lutte contre l'artificialisation des sols",
+      "biodiv & protec écosyst - Note Programmation - Préservation de la ressource en eau",
+      "Gestion patrimoine - Note Programmation - gestion durable"
+    ];
 
-    const getThematiqueFromLabel = (label) => {
-      for (const theme in THEMATIQUE_COULEURS) {
-        if (label.startsWith(theme)) return theme;
-      }
-      return "Autre";
-    };
+    const conceptionFields = programmationFields.map(f => f.replace("Programmation", "Conception"));
+    const travauxFields = programmationFields.map(f => f.replace("Programmation", "Travaux"));
 
-    // --- EXTRAIRE LES DONNÉES ---
-    grist.onRecord((record) => {
-      if (!record) return;
-
-      const data = record;
-      const sousThematiques = [];
-      const prog = [], conc = [], trav = [];
-      const fondCouleurs = [];
-
-      for (const col in data) {
-        if (!col.includes("Note")) continue;
-        const value = parseFloat(data[col]);
-        if (isNaN(value)) continue;
-
-        const parts = col.split(" - ");
-        if (parts.length < 4) continue;
-
-        const thematique = parts[0];
-        const phase = parts[1].toLowerCase();
-        const sous = parts.slice(2).join(" - ");
-
-        const idx = sousThematiques.indexOf(sous);
-        if (idx === -1) {
-          sousThematiques.push(sous);
-          prog.push(null);
-          conc.push(null);
-          trav.push(null);
-          fondCouleurs.push(THEMATIQUE_COULEURS[thematique] || "rgba(0,0,0,0.05)");
-        }
-
-        const i = sousThematiques.indexOf(sous);
-        if (col.includes("Programmation")) prog[i] = value;
-        else if (col.includes("Conception")) conc[i] = value;
-        else if (col.includes("Travaux")) trav[i] = value;
-      }
-
-      createRadarChart(sousThematiques, prog, conc, trav, fondCouleurs);
-    });
-
-    // --- CRÉATION DU GRAPHE ---
     let radarChart;
 
-    function createRadarChart(labels, dataProg, dataConc, dataTrav, fondCouleurs) {
-      const ctx = document.getElementById("radarChart").getContext("2d");
+    function createRadarChart(labels, dataProg, dataConc, dataTrav) {
+      const ctx = document.getElementById('radarChart').getContext('2d');
 
       if (radarChart) radarChart.destroy();
 
-      const gradientBg = (ctx, color) => {
-        const g = ctx.createRadialGradient(0, 0, 0, 0, 0, 200);
-        g.addColorStop(0, color);
-        g.addColorStop(1, "rgba(255,255,255,0)");
-        return g;
-      };
-
       radarChart = new Chart(ctx, {
-        type: "radar",
+        type: 'radar',
         data: {
-          labels: labels,
+          labels,
           datasets: [
             {
-              label: "Programmation",
+              label: 'Programmation',
               data: dataProg,
-              borderColor: "rgb(255, 99, 132)",
-              backgroundColor: "transparent",
-              pointBackgroundColor: "rgb(255, 99, 132)",
+              borderColor: 'rgb(255, 99, 132)',
+              pointBackgroundColor: 'rgb(255, 99, 132)',
+              fill: false,
               tension: 0.3
             },
             {
-              label: "Conception",
+              label: 'Conception',
               data: dataConc,
-              borderColor: "rgb(54, 162, 235)",
-              backgroundColor: "transparent",
-              pointBackgroundColor: "rgb(54, 162, 235)",
+              borderColor: 'rgb(54, 162, 235)',
+              pointBackgroundColor: 'rgb(54, 162, 235)',
+              fill: false,
               tension: 0.3
             },
             {
-              label: "Travaux",
+              label: 'Travaux',
               data: dataTrav,
-              borderColor: "rgb(255, 206, 86)",
-              backgroundColor: "transparent",
-              pointBackgroundColor: "rgb(255, 206, 86)",
+              borderColor: 'rgb(255, 206, 86)',
+              pointBackgroundColor: 'rgb(255, 206, 86)',
+              fill: false,
               tension: 0.3
             }
           ]
         },
         options: {
           responsive: true,
-          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'top' },
+            tooltip: { enabled: true }
+          },
           scales: {
             r: {
               beginAtZero: true,
+              min: 0,
               max: 9,
-              ticks: {
-                stepSize: 1,
-                backdropColor: "transparent",
-              },
+              ticks: { stepSize: 1 },
+              angleLines: { display: true },
               grid: {
-                color: "#ccc"
+                circular: true
               },
               pointLabels: {
-                font: {
-                  size: 12
-                },
-                callback: function(label, idx) {
-                  return label.length > 30 ? label.slice(0, 30) + "..." : label;
+                font: { size: 12 },
+                callback: function(label) {
+                  return label.length > 25 ? label.slice(0, 25) + '…' : label;
                 }
               }
             }
-          },
-          plugins: {
-            legend: { position: "top" },
-            tooltip: { enabled: true }
-          },
-          elements: {
-            line: {
-              borderWidth: 2
-            }
           }
-        },
-        plugins: [{
-          id: 'background-colors',
-          beforeDraw(chart) {
-            const {ctx, chartArea, data} = chart;
-            const centerX = (chartArea.left + chartArea.right) / 2;
-            const centerY = (chartArea.top + chartArea.bottom) / 2;
-            const radius = chart.scales.r.drawingArea;
-            const angleStep = (2 * Math.PI) / data.labels.length;
-
-            for (let i = 0; i < data.labels.length; i++) {
-              ctx.beginPath();
-              ctx.moveTo(centerX, centerY);
-              const startAngle = i * angleStep - Math.PI / 2;
-              const endAngle = (i + 1) * angleStep - Math.PI / 2;
-              ctx.arc(centerX, centerY, radius, startAngle, endAngle);
-              ctx.closePath();
-              ctx.fillStyle = fondCouleurs[i] || "rgba(0,0,0,0.03)";
-              ctx.fill();
-            }
-          }
-        }]
+        }
       });
     }
+
+    grist.ready();
+
+    grist.onRecord(record => {
+      if (!record) return;
+
+      const getValues = (fields) => fields.map(f => Number(record[f]) || 0);
+
+      const dataProg = getValues(programmationFields);
+      const dataConc = getValues(conceptionFields);
+      const dataTrav = getValues(travauxFields);
+
+      createRadarChart(sousThematiqueLabels, dataProg, dataConc, dataTrav);
+    });
   </script>
 </body>
 </html>
