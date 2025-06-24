@@ -2,139 +2,182 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <title>Radar Chart Widget</title>
+  <title>Radar Chart Widget Amélioré</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
   <style>
     body {
-      margin: 0;
-      padding: 0;
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      display: flex;
+      justify-content: center;
+      background: #f0f0f0;
     }
-    #container {
-      width: 100vw;
-      height: 100vh;
-      padding: 20px;
-      box-sizing: border-box;
+    #chartContainer {
+      width: 740px;
+      height: 740px;
+      padding: 70px; /* beaucoup d'espace autour pour les labels */
+      box-sizing: content-box;
+      background: white;
+      border: 1px solid #ccc;
+      border-radius: 12px;
+      box-shadow: 2px 2px 10px rgba(0,0,0,0.1);
     }
     canvas {
-      width: 100% !important;
-      height: 100% !important;
+      width: 600px !important;
+      height: 600px !important;
+      display: block;
+      margin: 0 auto;
     }
   </style>
 </head>
 <body>
-  <div id="container">
-    <canvas id="radarChart"></canvas>
+  <div id="chartContainer">
+    <canvas id="radarChart" width="600" height="600"></canvas>
   </div>
 
   <script>
-    const sousThematiqueLabels = [
-      "SMDD", "GES - Energie", "GES - Bas carbone",
-      "Territoire - économie", "Territoire - acteurs locaux", "Territoire - mobilité douce",
-      "Santé - air/eau", "Santé - confort visuel", "Santé - confort été", "Santé - inégalités",
-      "Biodiv - biodiversité", "Biodiv - sols", "Biodiv - eau",
-      "Patrimoine"
-    ];
+    // Exemple de données
+    const exampleDataMap = {
+      "SMDD - Programmation": { thematique: "SMDD", programmation: 2.5, conception: 2, travaux: 1.5 },
+      "GES - Energie": { thematique: "GES", programmation: 1.8, conception: 2.1, travaux: 2.4 },
+      "Territoire - Mobilité douce": { thematique: "Territoire", programmation: 1, conception: 1.2, travaux: 1.5 },
+      "Santé - Confort visuel": { thematique: "Santé", programmation: 2.2, conception: 1.8, travaux: 2.7 },
+      "Biodiv - Préservation eau": { thematique: "biodiv & protec écosyst", programmation: 2.7, conception: 2.9, travaux: 2.8 },
+      "Gestion patrimoine - Durable": { thematique: "Gestion patrimoine", programmation: 1.5, conception: 1.7, travaux: 2.1 }
+    };
 
-    const programmationFields = [
-      "SMDD - Note Programmation",
-      "GES - Note Programmation - Energie",
-      "GES - Note Programmation - Bas carbone",
-      "Territoire - Note Programmation - économie de projet durable",
-      "Territoire - Note Programmation - association des acteurs locaux",
-      "Territoire - Note Programmation - mobilité douce",
-      "Santé - Note Programmation - Ventilation/qualité de l'air et de l'eau",
-      "Santé - Note Programmation - Confort visuel/acoustique",
-      "Santé - Note Programmation - Confort d'été / bioclimatique",
-      "Santé - Note Programmation - Réduction des inégalités et sécurité",
-      "biodiv & protec écosyst - Note Programmation - Biodiversité",
-      "biodiv & protec écosyst - Note Programmation - Lutte contre l'artificialisation des sols",
-      "biodiv & protec écosyst - Note Programmation - Préservation de la ressource en eau",
-      "Gestion patrimoine - Note Programmation - gestion durable"
-    ];
+    // Couleurs bien visibles
+    const thematiqueColors = {
+      "SMDD": "rgba(255, 99, 132, 0.7)",
+      "GES": "rgba(54, 162, 235, 0.7)",
+      "Territoire": "rgba(255, 206, 86, 0.7)",
+      "Santé": "rgba(75, 192, 192, 0.7)",
+      "biodiv & protec écosyst": "rgba(153, 102, 255, 0.7)",
+      "Gestion patrimoine": "rgba(255, 159, 64, 0.7)"
+    };
+    const thematiqueBorderColors = {
+      "SMDD": "rgb(255, 99, 132)",
+      "GES": "rgb(54, 162, 235)",
+      "Territoire": "rgb(255, 206, 86)",
+      "Santé": "rgb(75, 192, 192)",
+      "biodiv & protec écosyst": "rgb(153, 102, 255)",
+      "Gestion patrimoine": "rgb(255, 159, 64)"
+    };
 
-    const conceptionFields = programmationFields.map(f => f.replace("Programmation", "Conception"));
-    const travauxFields = programmationFields.map(f => f.replace("Programmation", "Travaux"));
+    // Prépare les données pour Chart.js, on garde les 3 datasets "Programmation", "Conception", "Travaux"
+    function prepareChartData(dataMap) {
+      const labels = Object.keys(dataMap);
 
-    let radarChart;
+      const programmationData = [];
+      const conceptionData = [];
+      const travauxData = [];
 
-    function createRadarChart(labels, dataProg, dataConc, dataTrav) {
+      labels.forEach(label => {
+        const obj = dataMap[label];
+        programmationData.push(obj.programmation);
+        conceptionData.push(obj.conception);
+        travauxData.push(obj.travaux);
+      });
+
+      return {
+        labels,
+        datasets: [
+          {
+            label: "Programmation",
+            data: programmationData,
+            fill: true,
+            backgroundColor: "rgba(255, 99, 132, 0.6)",
+            borderColor: "rgb(255, 99, 132)",
+            pointBackgroundColor: "rgb(255, 99, 132)",
+            pointRadius: 7,
+            tension: 0.4,
+          },
+          {
+            label: "Conception",
+            data: conceptionData,
+            fill: true,
+            backgroundColor: "rgba(54, 162, 235, 0.6)",
+            borderColor: "rgb(54, 162, 235)",
+            pointBackgroundColor: "rgb(54, 162, 235)",
+            pointRadius: 7,
+            tension: 0.4,
+          },
+          {
+            label: "Travaux",
+            data: travauxData,
+            fill: true,
+            backgroundColor: "rgba(255, 206, 86, 0.6)",
+            borderColor: "rgb(255, 206, 86)",
+            pointBackgroundColor: "rgb(255, 206, 86)",
+            pointRadius: 7,
+            tension: 0.4,
+          }
+        ]
+      };
+    }
+
+    let radarChartInstance = null;
+    function createRadarChart(chartData) {
       const ctx = document.getElementById('radarChart').getContext('2d');
 
-      if (radarChart) radarChart.destroy();
+      if (radarChartInstance) {
+        radarChartInstance.destroy();
+      }
 
-      radarChart = new Chart(ctx, {
+      radarChartInstance = new Chart(ctx, {
         type: 'radar',
-        data: {
-          labels,
-          datasets: [
-            {
-              label: 'Programmation',
-              data: dataProg,
-              borderColor: 'rgb(255, 99, 132)',
-              pointBackgroundColor: 'rgb(255, 99, 132)',
-              fill: false,
-              tension: 0.3
-            },
-            {
-              label: 'Conception',
-              data: dataConc,
-              borderColor: 'rgb(54, 162, 235)',
-              pointBackgroundColor: 'rgb(54, 162, 235)',
-              fill: false,
-              tension: 0.3
-            },
-            {
-              label: 'Travaux',
-              data: dataTrav,
-              borderColor: 'rgb(255, 206, 86)',
-              pointBackgroundColor: 'rgb(255, 206, 86)',
-              fill: false,
-              tension: 0.3
-            }
-          ]
-        },
+        data: chartData,
         options: {
           responsive: true,
-          plugins: {
-            legend: { position: 'top' },
-            tooltip: { enabled: true }
-          },
+          maintainAspectRatio: false,
           scales: {
             r: {
               beginAtZero: true,
-              min: 0,
-              max: 9,
-              ticks: { stepSize: 1 },
-              angleLines: { display: true },
-              grid: {
-                circular: true
+              max: 3,
+              ticks: {
+                stepSize: 1,
+                backdropColor: 'transparent',
+                color: '#222',
+                font: { size: 14 }
               },
               pointLabels: {
-                font: { size: 12 },
-                callback: function(label) {
-                  return label.length > 25 ? label.slice(0, 25) + '…' : label;
+                font: {
+                  size: 16,
+                  weight: 'bold',
+                },
+                padding: 28
+              }
+            }
+          },
+          plugins: {
+            legend: {
+              position: 'top',
+              labels: {
+                font: {
+                  size: 16,
+                  weight: 'bold',
                 }
               }
+            },
+            tooltip: {
+              enabled: true,
+              backgroundColor: 'rgba(0,0,0,0.7)',
+              titleFont: { size: 14 },
+              bodyFont: { size: 14 }
             }
           }
         }
       });
     }
 
-    grist.ready();
+    function run() {
+      const dataMap = exampleDataMap; // Remplacer ici par ta récupération via Grist API
+      const chartData = prepareChartData(dataMap);
+      createRadarChart(chartData);
+    }
 
-    grist.onRecord(record => {
-      if (!record) return;
-
-      const getValues = (fields) => fields.map(f => Number(record[f]) || 0);
-
-      const dataProg = getValues(programmationFields);
-      const dataConc = getValues(conceptionFields);
-      const dataTrav = getValues(travauxFields);
-
-      createRadarChart(sousThematiqueLabels, dataProg, dataConc, dataTrav);
-    });
+    run();
   </script>
 </body>
 </html>
+
