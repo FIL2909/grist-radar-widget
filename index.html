@@ -2,181 +2,196 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <title>Radar Chart Widget Thématiques</title>
+  <title>Radar Chart Widget</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
   <style>
-    body {
+    html, body {
       margin: 0;
-      display: flex;
-      justify-content: center;
-      background: #f8f8f8;
-      padding: 30px;
+      padding: 0;
+      height: 100%;
+      width: 100%;
+      font-family: sans-serif;
+      background: #fff;
     }
-    #chartContainer {
-      width: 800px;
-      height: 800px;
-      background: white;
-      border-radius: 16px;
-      padding: 40px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    #chart-container {
+      width: 100%;
+      height: 100%;
+      padding: 20px;
+      box-sizing: border-box;
     }
     canvas {
-      width: 700px !important;
-      height: 700px !important;
+      width: 100% !important;
+      height: 100% !important;
     }
   </style>
 </head>
 <body>
-  <div id="chartContainer">
+  <div id="chart-container">
     <canvas id="radarChart"></canvas>
   </div>
 
   <script>
-    const subThemes = [
-      "SMDD - Gouvernance",
-      "SMDD - Education",
-      "GES - Énergie",
-      "GES - Matériaux",
-      "Territoire - Mobilité",
-      "Territoire - Réversibilité",
-      "Santé - Air intérieur",
-      "Santé - Confort visuel",
-      "Santé - Confort thermique",
-      "Biodiv - Faune flore",
-      "Biodiv - Eau",
-      "Patrimoine - Entretien",
-      "Patrimoine - Adaptabilité",
-      "Patrimoine - Pérennité"
-    ];
+    grist.ready();
 
-    const themeMap = {
-      "SMDD": "rgba(255, 99, 132, 0.1)",
-      "GES": "rgba(54, 162, 235, 0.1)",
-      "Territoire": "rgba(255, 206, 86, 0.1)",
-      "Santé": "rgba(75, 192, 192, 0.1)",
-      "Biodiv": "rgba(153, 102, 255, 0.1)",
-      "Patrimoine": "rgba(255, 159, 64, 0.1)"
+    // --- THÉMATIQUES & COULEURS POUR LE FOND ---
+    const THEMATIQUE_COULEURS = {
+      "GES": "rgba(255, 99, 132, 0.15)",
+      "Territoire": "rgba(54, 162, 235, 0.15)",
+      "Santé": "rgba(255, 206, 86, 0.15)",
+      "biodiv & protec écosyst": "rgba(75, 192, 192, 0.15)",
+      "Gestion patrimoine": "rgba(153, 102, 255, 0.15)",
     };
 
-    const subThemeToTheme = subTheme => {
-      if (subTheme.startsWith("SMDD")) return "SMDD";
-      if (subTheme.startsWith("GES")) return "GES";
-      if (subTheme.startsWith("Territoire")) return "Territoire";
-      if (subTheme.startsWith("Santé")) return "Santé";
-      if (subTheme.startsWith("Biodiv")) return "Biodiv";
-      if (subTheme.startsWith("Patrimoine")) return "Patrimoine";
-      return null;
-    };
-
-    const exampleValues = subThemes.map(() => Math.random() * 3); // Valeurs factices entre 0 et 3
-
-    // Plugin pour fond coloré en parts de gâteau
-    const backgroundPlugin = {
-      id: 'backgroundSectors',
-      beforeDatasetsDraw(chart) {
-        const { ctx, chartArea, scales } = chart;
-        const centerX = chartArea.left + (chartArea.right - chartArea.left) / 2;
-        const centerY = chartArea.top + (chartArea.bottom - chartArea.top) / 2;
-        const radius = scales.r.drawingArea;
-        const angleStep = (Math.PI * 2) / subThemes.length;
-
-        ctx.save();
-
-        subThemes.forEach((label, i) => {
-          const startAngle = -Math.PI / 2 + i * angleStep;
-          const endAngle = startAngle + angleStep;
-          const theme = subThemeToTheme(label);
-          const color = themeMap[theme] || "rgba(0,0,0,0.05)";
-
-          ctx.beginPath();
-          ctx.moveTo(centerX, centerY);
-          ctx.arc(centerX, centerY, radius, startAngle, endAngle);
-          ctx.closePath();
-          ctx.fillStyle = color;
-          ctx.fill();
-        });
-
-        ctx.restore();
+    const getThematiqueFromLabel = (label) => {
+      for (const theme in THEMATIQUE_COULEURS) {
+        if (label.startsWith(theme)) return theme;
       }
+      return "Autre";
     };
 
-    const chartData = {
-      labels: subThemes,
-      datasets: [
-        {
-          label: "Programmation",
-          data: subThemes.map(() => Math.random() * 3),
-          borderColor: "rgb(255, 99, 132)",
-          backgroundColor: "transparent",
-          pointBackgroundColor: "rgb(255, 99, 132)",
-          fill: false,
-          pointRadius: 5,
-          tension: 0.3
-        },
-        {
-          label: "Conception",
-          data: subThemes.map(() => Math.random() * 3),
-          borderColor: "rgb(54, 162, 235)",
-          backgroundColor: "transparent",
-          pointBackgroundColor: "rgb(54, 162, 235)",
-          fill: false,
-          pointRadius: 5,
-          tension: 0.3
-        },
-        {
-          label: "Travaux",
-          data: subThemes.map(() => Math.random() * 3),
-          borderColor: "rgb(255, 206, 86)",
-          backgroundColor: "transparent",
-          pointBackgroundColor: "rgb(255, 206, 86)",
-          fill: false,
-          pointRadius: 5,
-          tension: 0.3
-        }
-      ]
-    };
+    // --- EXTRAIRE LES DONNÉES ---
+    grist.onRecord((record) => {
+      if (!record) return;
 
-    const chartOptions = {
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        r: {
-          beginAtZero: true,
-          max: 3,
-          ticks: {
-            stepSize: 1,
-            font: { size: 14 },
-            backdropColor: 'transparent'
-          },
-          pointLabels: {
-            font: { size: 14, weight: 'bold' },
-            padding: 30
-          },
-          grid: {
-            color: "#ccc"
-          }
+      const data = record;
+      const sousThematiques = [];
+      const prog = [], conc = [], trav = [];
+      const fondCouleurs = [];
+
+      for (const col in data) {
+        if (!col.includes("Note")) continue;
+        const value = parseFloat(data[col]);
+        if (isNaN(value)) continue;
+
+        const parts = col.split(" - ");
+        if (parts.length < 4) continue;
+
+        const thematique = parts[0];
+        const phase = parts[1].toLowerCase();
+        const sous = parts.slice(2).join(" - ");
+
+        const idx = sousThematiques.indexOf(sous);
+        if (idx === -1) {
+          sousThematiques.push(sous);
+          prog.push(null);
+          conc.push(null);
+          trav.push(null);
+          fondCouleurs.push(THEMATIQUE_COULEURS[thematique] || "rgba(0,0,0,0.05)");
         }
-      },
-      plugins: {
-        legend: {
-          position: 'top',
-          labels: {
-            font: { size: 16 }
-          }
-        },
-        tooltip: {
-          enabled: true,
-          bodyFont: { size: 14 }
-        }
+
+        const i = sousThematiques.indexOf(sous);
+        if (col.includes("Programmation")) prog[i] = value;
+        else if (col.includes("Conception")) conc[i] = value;
+        else if (col.includes("Travaux")) trav[i] = value;
       }
-    };
 
-    new Chart(document.getElementById('radarChart'), {
-      type: 'radar',
-      data: chartData,
-      options: chartOptions,
-      plugins: [backgroundPlugin]
+      createRadarChart(sousThematiques, prog, conc, trav, fondCouleurs);
     });
+
+    // --- CRÉATION DU GRAPHE ---
+    let radarChart;
+
+    function createRadarChart(labels, dataProg, dataConc, dataTrav, fondCouleurs) {
+      const ctx = document.getElementById("radarChart").getContext("2d");
+
+      if (radarChart) radarChart.destroy();
+
+      const gradientBg = (ctx, color) => {
+        const g = ctx.createRadialGradient(0, 0, 0, 0, 0, 200);
+        g.addColorStop(0, color);
+        g.addColorStop(1, "rgba(255,255,255,0)");
+        return g;
+      };
+
+      radarChart = new Chart(ctx, {
+        type: "radar",
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: "Programmation",
+              data: dataProg,
+              borderColor: "rgb(255, 99, 132)",
+              backgroundColor: "transparent",
+              pointBackgroundColor: "rgb(255, 99, 132)",
+              tension: 0.3
+            },
+            {
+              label: "Conception",
+              data: dataConc,
+              borderColor: "rgb(54, 162, 235)",
+              backgroundColor: "transparent",
+              pointBackgroundColor: "rgb(54, 162, 235)",
+              tension: 0.3
+            },
+            {
+              label: "Travaux",
+              data: dataTrav,
+              borderColor: "rgb(255, 206, 86)",
+              backgroundColor: "transparent",
+              pointBackgroundColor: "rgb(255, 206, 86)",
+              tension: 0.3
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            r: {
+              beginAtZero: true,
+              max: 9,
+              ticks: {
+                stepSize: 1,
+                backdropColor: "transparent",
+              },
+              grid: {
+                color: "#ccc"
+              },
+              pointLabels: {
+                font: {
+                  size: 12
+                },
+                callback: function(label, idx) {
+                  return label.length > 30 ? label.slice(0, 30) + "..." : label;
+                }
+              }
+            }
+          },
+          plugins: {
+            legend: { position: "top" },
+            tooltip: { enabled: true }
+          },
+          elements: {
+            line: {
+              borderWidth: 2
+            }
+          }
+        },
+        plugins: [{
+          id: 'background-colors',
+          beforeDraw(chart) {
+            const {ctx, chartArea, data} = chart;
+            const centerX = (chartArea.left + chartArea.right) / 2;
+            const centerY = (chartArea.top + chartArea.bottom) / 2;
+            const radius = chart.scales.r.drawingArea;
+            const angleStep = (2 * Math.PI) / data.labels.length;
+
+            for (let i = 0; i < data.labels.length; i++) {
+              ctx.beginPath();
+              ctx.moveTo(centerX, centerY);
+              const startAngle = i * angleStep - Math.PI / 2;
+              const endAngle = (i + 1) * angleStep - Math.PI / 2;
+              ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+              ctx.closePath();
+              ctx.fillStyle = fondCouleurs[i] || "rgba(0,0,0,0.03)";
+              ctx.fill();
+            }
+          }
+        }]
+      });
+    }
   </script>
 </body>
 </html>
