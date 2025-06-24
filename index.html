@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <title>Radar Chart Widget Thématiques</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
   <style>
     body {
       margin: 0;
@@ -68,8 +69,6 @@
       return null;
     };
 
-    const exampleValues = subThemes.map(() => Math.random() * 3); // Valeurs factices entre 0 et 3
-
     // Plugin pour fond coloré en parts de gâteau
     const backgroundPlugin = {
       id: 'backgroundSectors',
@@ -100,83 +99,134 @@
       }
     };
 
-    const chartData = {
-      labels: subThemes,
-      datasets: [
-        {
-          label: "Programmation",
-          data: subThemes.map(() => Math.random() * 3),
-          borderColor: "rgb(255, 99, 132)",
-          backgroundColor: "transparent",
-          pointBackgroundColor: "rgb(255, 99, 132)",
-          fill: false,
-          pointRadius: 5,
-          tension: 0.3
-        },
-        {
-          label: "Conception",
-          data: subThemes.map(() => Math.random() * 3),
-          borderColor: "rgb(54, 162, 235)",
-          backgroundColor: "transparent",
-          pointBackgroundColor: "rgb(54, 162, 235)",
-          fill: false,
-          pointRadius: 5,
-          tension: 0.3
-        },
-        {
-          label: "Travaux",
-          data: subThemes.map(() => Math.random() * 3),
-          borderColor: "rgb(255, 206, 86)",
-          backgroundColor: "transparent",
-          pointBackgroundColor: "rgb(255, 206, 86)",
-          fill: false,
-          pointRadius: 5,
-          tension: 0.3
-        }
-      ]
-    };
+    let radarChartInstance = null;
 
-    const chartOptions = {
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        r: {
-          beginAtZero: true,
-          max: 3,
-          ticks: {
-            stepSize: 1,
-            font: { size: 14 },
-            backdropColor: 'transparent'
+    function createRadarChart(progData, concData, travauxData) {
+      const ctx = document.getElementById('radarChart').getContext('2d');
+
+      if (radarChartInstance) radarChartInstance.destroy();
+
+      const chartData = {
+        labels: subThemes,
+        datasets: [
+          {
+            label: "Programmation",
+            data: progData,
+            borderColor: "rgb(255, 99, 132)",
+            backgroundColor: "transparent",
+            pointBackgroundColor: "rgb(255, 99, 132)",
+            fill: false,
+            pointRadius: 5,
+            tension: 0.3
           },
-          pointLabels: {
-            font: { size: 14, weight: 'bold' },
-            padding: 30
+          {
+            label: "Conception",
+            data: concData,
+            borderColor: "rgb(54, 162, 235)",
+            backgroundColor: "transparent",
+            pointBackgroundColor: "rgb(54, 162, 235)",
+            fill: false,
+            pointRadius: 5,
+            tension: 0.3
           },
-          grid: {
-            color: "#ccc"
+          {
+            label: "Travaux",
+            data: travauxData,
+            borderColor: "rgb(255, 206, 86)",
+            backgroundColor: "transparent",
+            pointBackgroundColor: "rgb(255, 206, 86)",
+            fill: false,
+            pointRadius: 5,
+            tension: 0.3
           }
-        }
-      },
-      plugins: {
-        legend: {
-          position: 'top',
-          labels: {
-            font: { size: 16 }
+        ]
+      };
+
+      const chartOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          r: {
+            beginAtZero: true,
+            max: 9,  // ajuste selon ta note max dans la table
+            ticks: {
+              stepSize: 1,
+              font: { size: 14 },
+              backdropColor: 'transparent'
+            },
+            pointLabels: {
+              font: { size: 14, weight: 'bold' },
+              padding: 30
+            },
+            grid: {
+              color: "#ccc"
+            }
           }
         },
-        tooltip: {
-          enabled: true,
-          bodyFont: { size: 14 }
+        plugins: {
+          legend: {
+            position: 'top',
+            labels: {
+              font: { size: 16 }
+            }
+          },
+          tooltip: {
+            enabled: true,
+            bodyFont: { size: 14 }
+          }
+        }
+      };
+
+      radarChartInstance = new Chart(ctx, {
+        type: 'radar',
+        data: chartData,
+        options: chartOptions,
+        plugins: [backgroundPlugin]
+      });
+    }
+
+    // Fonction pour extraire la note dans le record
+    // Elle cherche la colonne correspondant à la sous-thématique ET la phase (Programmation, Conception, Travaux)
+    function getNote(record, subTheme, phase) {
+      // Les colonnes ont le format par exemple :
+      // "SMDD - Note Programmation" pour SMDD, ou
+      // "GES - Note Programmation - Energie"
+      // Dans ton cas, on va chercher une colonne qui contient la sous-thématique et la phase
+
+      // On normalise les noms pour chercher
+      const phaseKey = phase;
+      // Pour chaque clé dans record, on regarde si elle correspond à la sous-thème et phase
+      for (const colName in record) {
+        const normalizedCol = colName.toLowerCase();
+        const normalizedSub = subTheme.toLowerCase();
+        const normalizedPhase = phaseKey.toLowerCase();
+
+        // On simplifie en cherchant que la sous-thématique (ex: "smdd - gouvernance") + phase (programmation)
+        // Car les colonnes ont des noms parfois longs (ex: "SMDD - Note Programmation" ou "Territoire - Note Programmation - économie de projet durable")
+        // Ici on vérifie si colName contient à la fois subTheme (sans "Note") et phase
+        if (
+          normalizedCol.includes(normalizedPhase) &&
+          normalizedCol.includes(normalizedSub.replace(/ - /g, " ")) // un peu de tolérance sur espaces
+        ) {
+          return record[colName] || 0;
         }
       }
-    };
+      return 0; // par défaut 0 si non trouvé
+    }
 
-    new Chart(document.getElementById('radarChart'), {
-      type: 'radar',
-      data: chartData,
-      options: chartOptions,
-      plugins: [backgroundPlugin]
+    grist.ready();
+
+    grist.onRecord(record => {
+      if (!record) return;
+
+      // Pour chaque sous-thème, on récupère la note pour les 3 phases
+      const programmationData = subThemes.map(st => getNote(record, st, "Programmation"));
+      const conceptionData = subThemes.map(st => getNote(record, st, "Conception"));
+      const travauxData = subThemes.map(st => getNote(record, st, "Travaux"));
+
+      createRadarChart(programmationData, conceptionData, travauxData);
     });
+
   </script>
 </body>
 </html>
