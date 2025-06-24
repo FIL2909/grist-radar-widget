@@ -176,6 +176,55 @@
                 backgroundColor: "rgba(255, 206, 86, 0.2)",
                 borderColor: "rgb(255, 206, 86)",
                 pointBackgroundColor: "rgb(255, 206, 86)",
-                tension:
+                tension: 0.3,
+              }
+            ]
+          };
+        }
 
+        function createRadarChart(dataMap) {
+          const ctx = document.getElementById("radarChart").getContext("2d");
+          const chartData = prepareChartData(dataMap);
 
+          return new Chart(ctx, {
+            type: "radar",
+            data: chartData,
+            options: {
+              responsive: true,
+              scales: {
+                r: {
+                  min: 0,
+                  max: 3,
+                  ticks: {
+                    stepSize: 1
+                  }
+                }
+              },
+              plugins: {
+                legend: {
+                  position: "top",
+                },
+                title: {
+                  display: true,
+                  text: "Évaluation Radar"
+                }
+              }
+            }
+          });
+        }
+
+        try {
+          const dataMap = await getDataRadar();
+          if (dataMap) {
+            statusDiv.textContent = "Données récupérées, création du graphique...";
+            createRadarChart(dataMap);
+          }
+        } catch (e) {
+          statusDiv.textContent = "Erreur lors de la récupération ou traitement des données : " + e.message;
+          console.error(e);
+        }
+      })();
+    }
+  </script>
+</body>
+</html>
