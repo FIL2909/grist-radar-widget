@@ -101,10 +101,10 @@
         }
 
         async function getDataRadar() {
-          const table = await widgetApi.getTable("Table Evaluations");
+          const table = await widgetApi.getTable("Résumé");
           const records = await table.getRecords({limit: 1});
           if (!records.length) {
-            statusDiv.textContent = "Erreur : aucune donnée dans la table 'Table Evaluations'";
+            statusDiv.textContent = "Erreur : aucune donnée dans la table 'Résumé'";
             return null;
           }
           const record = records[0];
