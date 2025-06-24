@@ -4,227 +4,240 @@
   <meta charset="UTF-8" />
   <title>Radar Chart Widget</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+    }
+    #radarChart {
+      max-width: 600px;
+      max-height: 600px;
+      margin: auto;
+      display: block;
+    }
+  </style>
 </head>
 <body>
-  <h2>Radar Chart Widget</h2>
-  <div id="status" style="margin-bottom: 20px; font-weight: bold;"></div>
-  <div style="width: 600px; height: 600px;">
-    <canvas id="radarChart"></canvas>
-  </div>
+  <canvas id="radarChart"></canvas>
 
   <script>
-    const statusDiv = document.getElementById('status');
+    // --- Liste complète des colonnes ---
+    function getNoteKeys() {
+      return [
+        "SMDD - Note Programmation - Système de management dev. Durable",
+        "SMDD - Note Conception - Système de management dev. Durable",
+        "SMDD - Note Travaux - Système de management dev. Durable",
+        "SMDD - Note Maximale - Système de management dev. Durable",
 
-    if (typeof widgetApi === 'undefined') {
-      statusDiv.textContent = "Erreur : 'widgetApi' non défini. Ce fichier doit être chargé depuis Grist dans un widget personnalisé.";
-      document.getElementById('radarChart').style.display = 'none';
-    } else {
-      statusDiv.textContent = "widgetApi détecté, récupération des données...";
+        "GES - Note Programmation - Energie",
+        "GES - Note Programmation - Bas carbone",
+        "GES - Note Conception - Energie",
+        "GES - Note Conception - Bas carbone",
+        "GES - Note Travaux - Energie",
+        "GES - Note Travaux - Bas carbone",
+        "GES - Note Maximale - Energie",
+        "GES - Note Maximale - Bas carbone",
 
-      // Ton code précédent, encapsulé dans une fonction async pour demo
-      (async () => {
-        function getNoteKeys() {
-          return [
-            "SMDD - Note Programmation - Système de management dev. Durable",
-            "SMDD - Note Conception - Système de management dev. Durable",
-            "SMDD - Note Travaux - Système de management dev. Durable",
-            "SMDD - Note Maximale - Système de management dev. Durable",
-            "GES - Note Programmation - Energie",
-            "GES - Note Programmation - Bas carbone",
-            "GES - Note Conception - Energie",
-            "GES - Note Conception - Bas carbone",
-            "GES - Note Travaux - Energie",
-            "GES - Note Travaux - Bas carbone",
-            "GES - Note Maximale - Energie",
-            "GES - Note Maximale - Bas carbone",
-            "Territoire - Note Programmation - économie de projet durable",
-            "Territoire - Note Programmation - association des acteurs locaux",
-            "Territoire - Note Programmation - mobilité douce",
-            "Territoire - Note Conception - économie de projet durable",
-            "Territoire - Note Conception - association des acteurs locaux",
-            "Territoire - Note Conception - mobilité douce",
-            "Territoire - Note Travaux - économie de projet durable",
-            "Territoire - Note Travaux - association des acteurs locaux",
-            "Territoire - Note Travaux - mobilité douce",
-            "Territoire - Note Maximale - économie de projet durable",
-            "Territoire - Note Maximale - association des acteurs locaux",
-            "Territoire - Note Maximale - mobilité douce",
-            "Santé - Note Programmation - Ventilation/qualité de l'air et de l'eau",
-            "Santé - Note Programmation - Confort visuel/acoustique",
-            "Santé - Note Programmation - Confort d'été / bioclimatique",
-            "Santé - Note Programmation - Réduction des inégalités et sécurité",
-            "Santé - Note Conception - Ventilation/qualité de l'air et de l'eau",
-            "Santé - Note Conception - Confort visuel/acoustique",
-            "Santé - Note Conception - Confort d'été / bioclimatique",
-            "Santé - Note Conception - Réduction des inégalités et sécurité",
-            "Santé - Note Travaux - Ventilation/qualité de l'air et de l'eau",
-            "Santé - Note Travaux - Confort visuel/acoustique",
-            "Santé - Note Travaux - Confort d'été / bioclimatique",
-            "Santé - Note Travaux - Réduction des inégalités et sécurité",
-            "Santé - Note Maximale - Ventilation/qualité de l'air et de l'eau",
-            "Santé - Note Maximale - Confort visuel/acoustique",
-            "Santé - Note Maximale - Confort d'été / bioclimatique",
-            "Santé - Note Maximale - Réduction des inégalités et sécurité",
-            "biodiv & protec écosyst - Note Programmation - Biodiversité",
-            "biodiv & protec écosyst - Note Programmation - Lutte contre l'artificialisation des sols",
-            "biodiv & protec écosyst - Note Programmation - Préservation de la ressource en eau",
-            "biodiv & protec écosyst - Note Conception - Biodiversité",
-            "biodiv & protec écosyst - Note Conception - Lutte contre l'artificialisation des sols",
-            "biodiv & protec écosyst - Note Conception - Préservation de la ressource en eau",
-            "biodiv & protec écosyst - Note Travaux - Biodiversité",
-            "biodiv & protec écosyst - Note Travaux - Lutte contre l'artificialisation des sols",
-            "biodiv & protec écosyst - Note Travaux - Préservation de la ressource en eau",
-            "biodiv & protec écosyst - Note Maximale - Biodiversité",
-            "biodiv & protec écosyst - Note Maximale - Lutte contre l'artificialisation des sols",
-            "biodiv & protec écosyst - Note Maximale - Préservation de la ressource en eau",
-            "Gestion patrimoine - Note Programmation - gestion durable",
-            "Gestion patrimoine - Note Conception - gestion durable",
-            "Gestion patrimoine - Note Travaux - gestion durable",
-            "Gestion patrimoine - Note Maximale - gestion durable"
-          ];
-        }
+        "Territoire - Note Programmation - économie de projet durable",
+        "Territoire - Note Programmation - association des acteurs locaux",
+        "Territoire - Note Programmation - mobilité douce",
+        "Territoire - Note Conception - économie de projet durable",
+        "Territoire - Note Conception - association des acteurs locaux",
+        "Territoire - Note Conception - mobilité douce",
+        "Territoire - Note Travaux - économie de projet durable",
+        "Territoire - Note Travaux - association des acteurs locaux",
+        "Territoire - Note Travaux - mobilité douce",
+        "Territoire - Note Maximale - économie de projet durable",
+        "Territoire - Note Maximale - association des acteurs locaux",
+        "Territoire - Note Maximale - mobilité douce",
 
-        function parseKey(key) {
-          const parts = key.split(" - ");
-          const thematique = parts[0].trim();
-          let typeNote = "";
-          let sousThematique = "";
+        "Santé - Note Programmation - Ventilation/qualité de l'air et de l'eau",
+        "Santé - Note Programmation - Confort visuel/acoustique",
+        "Santé - Note Programmation - Confort d'été / bioclimatique",
+        "Santé - Note Programmation - Réduction des inégalités et sécurité",
+        "Santé - Note Conception - Ventilation/qualité de l'air et de l'eau",
+        "Santé - Note Conception - Confort visuel/acoustique",
+        "Santé - Note Conception - Confort d'été / bioclimatique",
+        "Santé - Note Conception - Réduction des inégalités et sécurité",
+        "Santé - Note Travaux - Ventilation/qualité de l'air et de l'eau",
+        "Santé - Note Travaux - Confort visuel/acoustique",
+        "Santé - Note Travaux - Confort d'été / bioclimatique",
+        "Santé - Note Travaux - Réduction des inégalités et sécurité",
+        "Santé - Note Maximale - Ventilation/qualité de l'air et de l'eau",
+        "Santé - Note Maximale - Confort visuel/acoustique",
+        "Santé - Note Maximale - Confort d'été / bioclimatique",
+        "Santé - Note Maximale - Réduction des inégalités et sécurité",
 
-          if (parts.length === 3) {
-            typeNote = parts[1].replace("Note ", "").trim();
-            sousThematique = parts[2].trim();
-          } else if (parts.length >= 4) {
-            typeNote = parts[1].replace("Note ", "").trim();
-            sousThematique = parts.slice(2).join(" - ").trim();
-          }
-          return { thematique, sousThematique, typeNote };
-        }
+        "biodiv & protec écosyst - Note Programmation - Biodiversité",
+        "biodiv & protec écosyst - Note Programmation - Lutte contre l'artificialisation des sols",
+        "biodiv & protec écosyst - Note Programmation - Préservation de la ressource en eau",
+        "biodiv & protec écosyst - Note Conception - Biodiversité",
+        "biodiv & protec écosyst - Note Conception - Lutte contre l'artificialisation des sols",
+        "biodiv & protec écosyst - Note Conception - Préservation de la ressource en eau",
+        "biodiv & protec écosyst - Note Travaux - Biodiversité",
+        "biodiv & protec écosyst - Note Travaux - Lutte contre l'artificialisation des sols",
+        "biodiv & protec écosyst - Note Travaux - Préservation de la ressource en eau",
+        "biodiv & protec écosyst - Note Maximale - Biodiversité",
+        "biodiv & protec écosyst - Note Maximale - Lutte contre l'artificialisation des sols",
+        "biodiv & protec écosyst - Note Maximale - Préservation de la ressource en eau",
 
-        async function getDataRadar() {
-          const table = await widgetApi.getTable("Résumé");
-          const records = await table.getRecords({limit: 1});
-          if (!records.length) {
-            statusDiv.textContent = "Erreur : aucune donnée dans la table 'Résumé'";
-            return null;
-          }
-          const record = records[0];
-          const keys = getNoteKeys();
-
-          const dataMap = {};
-
-          keys.forEach(key => {
-            const {thematique, sousThematique, typeNote} = parseKey(key);
-            if (!dataMap[sousThematique]) {
-              dataMap[sousThematique] = { thematique };
-            }
-
-            const val = record.getCellValue(key);
-            dataMap[sousThematique][typeNote.toLowerCase()] = typeof val === "number" ? val : 0;
-          });
-
-          for (const sousThematique in dataMap) {
-            const obj = dataMap[sousThematique];
-            const maxVal = obj.maximale || 1;
-            obj.programmation = (obj.programmation || 0) / maxVal * 3;
-            obj.conception = (obj.conception || 0) / maxVal * 3;
-            obj.travaux = (obj.travaux || 0) / maxVal * 3;
-          }
-
-          return dataMap;
-        }
-
-        function prepareChartData(dataMap) {
-          const labels = Object.keys(dataMap);
-          const programmationData = [];
-          const conceptionData = [];
-          const travauxData = [];
-          const thematiques = [];
-
-          labels.forEach(label => {
-            const obj = dataMap[label];
-            programmationData.push(obj.programmation);
-            conceptionData.push(obj.conception);
-            travauxData.push(obj.travaux);
-            thematiques.push(obj.thematique);
-          });
-
-          return {
-            labels,
-            datasets: [
-              {
-                label: "Programmation",
-                data: programmationData,
-                fill: true,
-                backgroundColor: "rgba(255, 99, 132, 0.2)",
-                borderColor: "rgb(255, 99, 132)",
-                pointBackgroundColor: "rgb(255, 99, 132)",
-                tension: 0.3,
-              },
-              {
-                label: "Conception",
-                data: conceptionData,
-                fill: true,
-                backgroundColor: "rgba(54, 162, 235, 0.2)",
-                borderColor: "rgb(54, 162, 235)",
-                pointBackgroundColor: "rgb(54, 162, 235)",
-                tension: 0.3,
-              },
-              {
-                label: "Travaux",
-                data: travauxData,
-                fill: true,
-                backgroundColor: "rgba(255, 206, 86, 0.2)",
-                borderColor: "rgb(255, 206, 86)",
-                pointBackgroundColor: "rgb(255, 206, 86)",
-                tension: 0.3,
-              }
-            ]
-          };
-        }
-
-        function createRadarChart(dataMap) {
-          const ctx = document.getElementById("radarChart").getContext("2d");
-          const chartData = prepareChartData(dataMap);
-
-          return new Chart(ctx, {
-            type: "radar",
-            data: chartData,
-            options: {
-              responsive: true,
-              scales: {
-                r: {
-                  min: 0,
-                  max: 3,
-                  ticks: {
-                    stepSize: 1
-                  }
-                }
-              },
-              plugins: {
-                legend: {
-                  position: "top",
-                },
-                title: {
-                  display: true,
-                  text: "Évaluation Radar"
-                }
-              }
-            }
-          });
-        }
-
-        try {
-          const dataMap = await getDataRadar();
-          if (dataMap) {
-            statusDiv.textContent = "Données récupérées, création du graphique...";
-            createRadarChart(dataMap);
-          }
-        } catch (e) {
-          statusDiv.textContent = "Erreur lors de la récupération ou traitement des données : " + e.message;
-          console.error(e);
-        }
-      })();
+        "Gestion patrimoine - Note Programmation - gestion durable",
+        "Gestion patrimoine - Note Conception - gestion durable",
+        "Gestion patrimoine - Note Travaux - gestion durable",
+        "Gestion patrimoine - Note Maximale - gestion durable"
+      ];
     }
+
+    // --- Extraction des infos dans les clés ---
+    function parseKey(key) {
+      const parts = key.split(" - ");
+      const thematique = parts[0].trim();
+      let typeNote = "";
+      let sousThematique = "";
+
+      if (parts.length === 3) {
+        typeNote = parts[1].replace("Note ", "").trim();
+        sousThematique = parts[2].trim();
+      } else if (parts.length >= 4) {
+        typeNote = parts[1].replace("Note ", "").trim();
+        sousThematique = parts.slice(2).join(" - ").trim();
+      }
+      return { thematique, sousThematique, typeNote };
+    }
+
+    // --- Préparation des données pour le radar chart ---
+    function prepareData(record) {
+      const keys = getNoteKeys();
+      const dataMap = {};
+
+      keys.forEach(key => {
+        const { thematique, sousThematique, typeNote } = parseKey(key);
+
+        if (!dataMap[sousThematique]) {
+          dataMap[sousThematique] = { thematique };
+        }
+
+        let val = record[key];
+        if (typeof val !== "number") {
+          val = 0;
+        }
+
+        dataMap[sousThematique][typeNote.toLowerCase()] = val;
+      });
+
+      // Normaliser et mettre à l’échelle
+      for (const sousThematique in dataMap) {
+        const obj = dataMap[sousThematique];
+        const maxVal = obj.maximale || 1;
+
+        obj.programmation = (obj.programmation || 0) / maxVal * 3;
+        obj.conception = (obj.conception || 0) / maxVal * 3;
+        obj.travaux = (obj.travaux || 0) / maxVal * 3;
+      }
+
+      return dataMap;
+    }
+
+    // --- Préparation des données pour Chart.js ---
+    function prepareChartData(dataMap) {
+      const labels = Object.keys(dataMap);
+      const programmationData = [];
+      const conceptionData = [];
+      const travauxData = [];
+      const thematiques = [];
+
+      labels.forEach(label => {
+        const obj = dataMap[label];
+        programmationData.push(obj.programmation);
+        conceptionData.push(obj.conception);
+        travauxData.push(obj.travaux);
+        thematiques.push(obj.thematique);
+      });
+
+      return {
+        labels,
+        datasets: [
+          {
+            label: "Programmation",
+            data: programmationData,
+            fill: true,
+            backgroundColor: "rgba(255, 99, 132, 0.2)",
+            borderColor: "rgb(255, 99, 132)",
+            pointBackgroundColor: "rgb(255, 99, 132)",
+            tension: 0.3,
+          },
+          {
+            label: "Conception",
+            data: conceptionData,
+            fill: true,
+            backgroundColor: "rgba(54, 162, 235, 0.2)",
+            borderColor: "rgb(54, 162, 235)",
+            pointBackgroundColor: "rgb(54, 162, 235)",
+            tension: 0.3,
+          },
+          {
+            label: "Travaux",
+            data: travauxData,
+            fill: true,
+            backgroundColor: "rgba(255, 206, 86, 0.2)",
+            borderColor: "rgb(255, 206, 86)",
+            pointBackgroundColor: "rgb(255, 206, 86)",
+            tension: 0.3,
+          }
+        ]
+      };
+    }
+
+    // --- Création du graphique radar ---
+    let radarChartInstance = null;
+    function createRadarChart(chartData) {
+      const ctx = document.getElementById('radarChart').getContext('2d');
+
+      if (radarChartInstance) {
+        radarChartInstance.destroy();
+      }
+
+      radarChartInstance = new Chart(ctx, {
+        type: 'radar',
+        data: chartData,
+        options: {
+          responsive: true,
+          scales: {
+            r: {
+              beginAtZero: true,
+              max: 3,
+              ticks: {
+                stepSize: 1
+              }
+            }
+          },
+          plugins: {
+            legend: {
+              position: 'top',
+            },
+            tooltip: {
+              enabled: true,
+            }
+          }
+        }
+      });
+    }
+
+    // --- Initialisation du widget avec l'API Grist ---
+    grist.ready();
+
+    grist.onRecord((record) => {
+      if (!record) {
+        console.error("Pas de données disponibles sur la ligne sélectionnée");
+        return;
+      }
+
+      const dataMap = prepareData(record);
+      const chartData = prepareChartData(dataMap);
+
+      createRadarChart(chartData);
+    });
+
   </script>
 </body>
 </html>
