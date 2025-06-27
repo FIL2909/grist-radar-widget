@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Radar Chart avec données Grist</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -27,115 +28,87 @@
   <h1>Radar Chart Example avec données Grist</h1>
   <canvas id="radarChart" width="600" height="600"></canvas>
 
-  <script type="module">
-    import { GristApi } from "https://unpkg.com/@gristlabs/grist-widget-api/dist/index.js";
-
-    async function fetchGristData() {
-      const api = new GristApi();
-
-      // Récupérer les données de la table "Test_Resume"
-      // Assure-toi que le nom est exactement celui de ta table dans Grist
-      const table = await api.docAPI.fetchTable("Test_Resume");
-
-      // Récupérer les colonnes désirées
-      // Ici on suppose que tes colonnes sont nommées exactement comme ça
-      const records = table.records.map(row => ({
-        "ST ref": row["ST ref"],
-        "Programmation/5": row["Programmation/5"],
-        "Conception/5": row["Conception/5"],
-        "Travaux/5": row["Travaux/5"],
-      }));
-
-      return records;
-    }
-
-    function drawRadarChart(records) {
-      const labels = [];
-      const progData = [];
-      const concData = [];
-      const travauxData = [];
-
-      for (const r of records) {
-        if (r["ST ref"]) {
-          labels.push(r["ST ref"]);
-
-          progData.push(r["Programmation/5"] != null ? r["Programmation/5"] : 0.1);
-          concData.push(r["Conception/5"] != null ? r["Conception/5"] : 0.1);
-          travauxData.push(r["Travaux/5"] != null ? r["Travaux/5"] : 0.1);
-        }
-      }
-
-      if (window.radarChartInstance) {
-        window.radarChartInstance.destroy();
-      }
-
-      const ctx = document.getElementById('radarChart').getContext('2d');
-      window.radarChartInstance = new Chart(ctx, {
-        type: 'radar',
-        data: {
-          labels: labels,
-          datasets: [
-            {
-              label: "Programmation",
-              data: progData,
-              borderColor: "rgb(255, 99, 132)",
-              backgroundColor: "rgba(255, 99, 132, 0.2)",
-              fill: true,
-              tension: 0.3,
-            },
-            {
-              label: "Conception",
-              data: concData,
-              borderColor: "rgb(54, 162, 235)",
-              backgroundColor: "rgba(54, 162, 235, 0.2)",
-              fill: true,
-              tension: 0.3,
-            },
-            {
-              label: "Travaux",
-              data: travauxData,
-              borderColor: "rgb(75, 192, 192)",
-              backgroundColor: "rgba(75, 192, 192, 0.2)",
-              fill: true,
-              tension: 0.3,
-            },
-          ],
-        },
-        options: {
-          responsive: true,
-          scales: {
-            r: {
-              angleLines: { color: '#ccc' },
-              grid: { color: '#ddd' },
-              suggestedMin: 0,
-              suggestedMax: 5,
-              ticks: { stepSize: 1, color: '#444' },
-              pointLabels: { color: '#444', font: { size: 14 } }
-            },
-          },
-          plugins: {
-            legend: { position: 'top', labels: { color: '#333', font: { size: 14 } } }
-          },
-        },
-      });
-    }
-
+  <script>
     (async () => {
       try {
-        const records = await fetchGristData();
-        drawRadarChart(records);
+        // Initialisation de l'API Grist officielle
+        const api = await grist.init();
+
+        // Remplace "Test_Resume" par le nom exact de ta table
+        const tableData = await api.getTable("Test_Resume");
+
+        // Extraction des labels et données
+        const labels = [];
+        const progData = [];
+        const concData = [];
+        const travauxData = [];
+
+        for (const row of tableData) {
+          if (row["ST ref"]) {
+            labels.push(row["ST ref"]);
+            progData.push(row["Programmation/5"] != null ? row["Programmation/5"] : 0);
+            concData.push(row["Conception/5"] != null ? row["Conception/5"] : 0);
+            travauxData.push(row["Travaux/5"] != null ? row["Travaux/5"] : 0);
+          }
+        }
+
+        // Destruction de l'ancien graphique s'il existe
+        if (window.radarChartInstance) {
+          window.radarChartInstance.destroy();
+        }
+
+        const ctx = document.getElementById('radarChart').getContext('2d');
+        window.radarChartInstance = new Chart(ctx, {
+          type: 'radar',
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                label: "Programmation",
+                data: progData,
+                borderColor: "rgb(255, 99, 132)",
+                backgroundColor: "rgba(255, 99, 132, 0.2)",
+                fill: true,
+                tension: 0.3,
+              },
+              {
+                label: "Conception",
+                data: concData,
+                borderColor: "rgb(54, 162, 235)",
+                backgroundColor: "rgba(54, 162, 235, 0.2)",
+                fill: true,
+                tension: 0.3,
+              },
+              {
+                label: "Travaux",
+                data: travauxData,
+                borderColor: "rgb(75, 192, 192)",
+                backgroundColor: "rgba(75, 192, 192, 0.2)",
+                fill: true,
+                tension: 0.3,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            scales: {
+              r: {
+                angleLines: { color: '#ccc' },
+                grid: { color: '#ddd' },
+                suggestedMin: 0,
+                suggestedMax: 5,
+                ticks: { stepSize: 1, color: '#444' },
+                pointLabels: { color: '#444', font: { size: 14 } }
+              },
+            },
+            plugins: {
+              legend: { position: 'top', labels: { color: '#333', font: { size: 14 } } }
+            },
+          },
+        });
       } catch (err) {
         console.error("Erreur lors de la récupération des données Grist:", err);
-        // En cas d'erreur, tu peux afficher des données de secours ou un message d'erreur ici.
-      }
-    })();
-  </script>
-
-</body>
-</html>
-   } catch (err) {
-        console.error("Erreur lors de la récupération des données Grist:", err);
-        // En cas d'erreur, tu peux afficher des données de secours ou un message d'erreur ici.
+        // Ici tu peux mettre un fallback ou un message utilisateur
       }
     })();
   </script>
