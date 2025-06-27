@@ -1,111 +1,131 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="utf-8">
-  <title>Radar Chart Widget</title>
-  <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Radar Chart Test</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    body { margin: 0; padding: 20px; font-family: sans-serif; }
-    #chartContainer { width: 700px; height: 700px; margin: auto; }
-    canvas { width: 100%; height: 100%; }
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 700px;
+      margin: 30px auto;
+      text-align: center;
+    }
+    canvas {
+      max-width: 600px;
+      margin: 0 auto;
+      background: #f9f9f9;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      padding: 10px;
+    }
   </style>
 </head>
 <body>
-  <div id="chartContainer">
-    <canvas id="radarChart"></canvas>
-  </div>
+
+  <h1>Radar Chart Example avec valeurs manquantes</h1>
+  <canvas id="radarChart" width="600" height="600"></canvas>
 
   <script>
-    let radarChartInstance = null;
+    // Simuler les données de ta table avec des valeurs null
+    const records = [
+      { "ST ref": "Programmation", "Programmation/5": 4, "Conception/5": 3, "Travaux/5": null },
+      { "ST ref": "Conception", "Programmation/5": 2, "Conception/5": null, "Travaux/5": 5 },
+      { "ST ref": "Travaux", "Programmation/5": null, "Conception/5": 4, "Travaux/5": 3 },
+      { "ST ref": "Tests", "Programmation/5": 5, "Conception/5": 2, "Travaux/5": 4 }
+    ];
 
-    // Crée le radar à partir de labels et données 3 phases
-    function createRadar(labels, progData, concData, travauxData) {
-      console.log('🔹 labels:', labels);
-      console.log('🔹 progData:', progData);
-      console.log('🔹 concData:', concData);
-      console.log('🔹 travauxData:', travauxData);
+    function drawRadarChart(records) {
+      const labels = [];
+      const progData = [];
+      const concData = [];
+      const travauxData = [];
+
+      for (const r of records) {
+        if (r["ST ref"]) {
+          labels.push(r["ST ref"]);
+
+          progData.push(r["Programmation/5"] != null ? r["Programmation/5"] : 0.1);
+          concData.push(r["Conception/5"] != null ? r["Conception/5"] : 0.1);
+          travauxData.push(r["Travaux/5"] != null ? r["Travaux/5"] : 0.1);
+        }
+      }
+
+      // Nettoyer l'ancienne instance si existante
+      if (window.radarChartInstance) {
+        window.radarChartInstance.destroy();
+      }
 
       const ctx = document.getElementById('radarChart').getContext('2d');
-      if (radarChartInstance) radarChartInstance.destroy();
-
-      radarChartInstance = new Chart(ctx, {
+      window.radarChartInstance = new Chart(ctx, {
         type: 'radar',
         data: {
-          labels,
+          labels: labels,
           datasets: [
             {
               label: "Programmation",
               data: progData,
               borderColor: "rgb(255, 99, 132)",
               backgroundColor: "rgba(255, 99, 132, 0.2)",
-              fill: false,
-              pointRadius: 4, tension: 0.3
+              fill: true,
+              tension: 0.3,
             },
             {
               label: "Conception",
               data: concData,
               borderColor: "rgb(54, 162, 235)",
               backgroundColor: "rgba(54, 162, 235, 0.2)",
-              fill: false,
-              pointRadius: 4, tension: 0.3
+              fill: true,
+              tension: 0.3,
             },
             {
               label: "Travaux",
               data: travauxData,
-              borderColor: "rgb(255, 206, 86)",
-              backgroundColor: "rgba(255, 206, 86, 0.2)",
-              fill: false,
-              pointRadius: 4, tension: 0.3
-            }
-          ]
+              borderColor: "rgb(75, 192, 192)",
+              backgroundColor: "rgba(75, 192, 192, 0.2)",
+              fill: true,
+              tension: 0.3,
+            },
+          ],
         },
         options: {
           responsive: true,
           scales: {
             r: {
-              beginAtZero: true,
-              ticks: { stepSize: 1 },
-              backdropColor: 'transparent'
-            }
+              angleLines: {
+                color: '#ccc',
+              },
+              grid: {
+                color: '#ddd',
+              },
+              suggestedMin: 0,
+              suggestedMax: 5,
+              ticks: {
+                stepSize: 1,
+                color: '#444',
+              },
+              pointLabels: {
+                color: '#444',
+                font: { size: 14 }
+              }
+            },
           },
-          plugins: { legend: { position: 'top' } }
-        }
+          plugins: {
+            legend: {
+              position: 'top',
+              labels: {
+                color: '#333',
+                font: { size: 14 }
+              }
+            },
+          },
+        },
       });
     }
 
-    // Lecture des données Grist
-    grist.ready();
-    grist.onRecords(records => {
-      if (!records || records.length === 0) return;
-
-      const labels = [];
-      const progData = [], concData = [], travauxData = [];
-
-      records.forEach(r => {
-        labels.push(r["ST ref"] || '');
-        progData.push(r["Programmation/5"] != null ? r["Programmation/5"] : 0);
-        concData.push(r["Conception/5"] != null ? r["Conception/5"] : 0);
-        travauxData.push(r["Travaux/5"] != null ? r["Travaux/5"] : 0);
-      });
-
-      // Si tous les tableaux sont nuls ou vides, on montre un exemple
-      const isEmpty = progData.every(v => v === 0)
-                   && concData.every(v => v === 0)
-                   && travauxData.every(v => v === 0);
-
-      if (isEmpty) {
-        console.warn("🔄 Données vides détectées, affichage du jeu de test.");
-        createRadar(
-          ['ST A','ST B','ST C','ST D'],
-          [3,4,2,5],
-          [2,3,4,1],
-          [5,4,3,2]
-        );
-      } else {
-        createRadar(labels, progData, concData, travauxData);
-      }
-    });
+    drawRadarChart(records);
   </script>
+
 </body>
 </html>
