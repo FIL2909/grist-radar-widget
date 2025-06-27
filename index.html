@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <title>Radar Chart</title>
+  <title>Radar Chart Debug</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     canvas {
@@ -16,93 +16,63 @@
   <canvas id="radarChart"></canvas>
 
   <script>
-    let radarChartInstance;
+    let radarChartInstance = null;
 
     function drawRadarChart(records) {
-      console.log("Records dans drawRadarChart :", records);
+      console.log("🔍 drawRadarChart reçoit ces records :", records);
 
-      const labels = [];
-      const progData = [];
-      const concData = [];
-      const travauxData = [];
+      const labels = [], progData = [], concData = [], travauxData = [];
 
       for (const r of records) {
+        console.log("→ Record:", r);
         const label = r["ST ref"];
-        if (label) {
-          labels.push(label);
+        console.log("   ST ref =", label);
+        labels.push(label);
 
-          const prog = typeof r["Programmation/5"] === 'number' ? r["Programmation/5"] : null;
-          const conc = typeof r["Conception/5"] === 'number' ? r["Conception/5"] : null;
-          const trav = typeof r["Travaux/5"] === 'number' ? r["Travaux/5"] : null;
+        const prog = r["Programmation/5"];
+        const conc = r["Conception/5"];
+        const trav = r["Travaux/5"];
+        console.log(`   Notes → prog: ${prog}, conc: ${conc}, trav: ${trav}`);
 
-          progData.push(prog);
-          concData.push(conc);
-          travauxData.push(trav);
-        }
+        progData.push(typeof prog === 'number' ? prog : null);
+        concData.push(typeof conc === 'number' ? conc : null);
+        travauxData.push(typeof trav === 'number' ? trav : null);
       }
+
+      console.log("Labels finaux:", labels);
+      console.log("Datasets finaux:", { progData, concData, travauxData });
 
       if (radarChartInstance) {
         radarChartInstance.destroy();
+        radarChartInstance = null;
       }
 
       const ctx = document.getElementById('radarChart').getContext('2d');
       radarChartInstance = new Chart(ctx, {
         type: 'radar',
-        data: {
-          labels: labels,
-          datasets: [
-            {
-              label: "Programmation",
-              data: progData,
-              borderColor: "rgb(255, 99, 132)",
-              backgroundColor: "rgba(255, 99, 132, 0.2)",
-              spanGaps: true,
-            },
-            {
-              label: "Conception",
-              data: concData,
-              borderColor: "rgb(54, 162, 235)",
-              backgroundColor: "rgba(54, 162, 235, 0.2)",
-              spanGaps: true,
-            },
-            {
-              label: "Travaux",
-              data: travauxData,
-              borderColor: "rgb(75, 192, 192)",
-              backgroundColor: "rgba(75, 192, 192, 0.2)",
-              spanGaps: true,
-            }
-          ]
-        },
+        data: { labels, datasets: [
+          { label: "Programmation", data: progData, borderColor: "rgb(255, 99, 132)", backgroundColor: "rgba(255,99,132,0.2)", spanGaps: true },
+          { label: "Conception",     data: concData, borderColor: "rgb(54, 162, 235)", backgroundColor: "rgba(54,162,235,0.2)", spanGaps: true },
+          { label: "Travaux",        data: travauxData, borderColor: "rgb(75, 192, 192)", backgroundColor: "rgba(75,192,192,0.2)", spanGaps: true }
+        ]},
         options: {
-          responsive: true,
-          scales: {
-            r: {
-              beginAtZero: true,
-              max: 5,
-              ticks: {
-                stepSize: 1
-              }
-            }
-          },
-          plugins: {
-            legend: {
-              position: 'top'
-            },
-            title: {
-              display: false
-            }
-          }
+          scales: { r: { beginAtZero: true, max: 5, ticks: { stepSize: 1 } } },
+          plugins: { legend: { position: 'top' } }
         }
       });
     }
 
+    console.log("🔗 Setup grist...");
     grist.ready({
       columns: ["ST ref", "Programmation/5", "Conception/5", "Travaux/5"]
     });
 
     grist.onRecords((records) => {
-      console.log("Données Grist reçues :", records);
+      console.log("✅ D’abord, records reçus :", records);
+      if (!records || records.length === 0) {
+        console.warn("⚠️ Aucun record reçu par le widget.");
+        return;
+      }
       drawRadarChart(records);
     });
   </script>
