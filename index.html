@@ -1,64 +1,62 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <title>Radar Chart - Par Sous-Thématique</title>
+  <meta charset="UTF-8" />
+  <title>Radar Chart - Sous-thématiques</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
   <style>
     body {
       margin: 0;
+      padding: 40px;
+      background: #f0f0f0;
+      font-family: Arial, sans-serif;
       display: flex;
       justify-content: center;
-      align-items: center;
-      height: 100vh;
-      background: #f0f0f0;
     }
-
     #chartContainer {
+      background: white;
+      padding: 40px;
+      border-radius: 16px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.1);
       width: 800px;
       height: 800px;
-      background: white;
-      border-radius: 16px;
-      padding: 40px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     }
-
     canvas {
-      width: 100% !important;
-      height: 100% !important;
+      width: 700px !important;
+      height: 700px !important;
     }
   </style>
 </head>
 <body>
+
   <div id="chartContainer">
     <canvas id="radarChart"></canvas>
   </div>
 
   <script>
-    grist.ready();
-
-    grist.onRecords((records) => {
-      console.log("records:", records);
-      if (!records.length) return;
-      drawRadarChart(records);
-    });
-
     function drawRadarChart(records) {
+      console.log("ST ref list:", records.map(r => r["ST ref"]));
+      console.log("Programmation/5 values:", records.map(r => r["Programmation/5"]));
+
       const labels = [];
       const progData = [];
       const concData = [];
       const travauxData = [];
 
-      records.forEach(r => {
-        labels.push(r["ST ref"]);
-        progData.push(typeof r["Programmation/5"] === "number" ? r["Programmation/5"] : 0);
-        concData.push(typeof r["Conception/5"] === "number" ? r["Conception/5"] : 0);
-        travauxData.push(typeof r["Travaux/5"] === "number" ? r["Travaux/5"] : 0);
-      });
+      for (const r of records) {
+        if (r["ST ref"]) {
+          labels.push(r["ST ref"]);
+          progData.push(typeof r["Programmation/5"] === 'number' ? r["Programmation/5"] : 0);
+          concData.push(typeof r["Conception/5"] === 'number' ? r["Conception/5"] : 0);
+          travauxData.push(typeof r["Travaux/5"] === 'number' ? r["Travaux/5"] : 0);
+        }
+      }
 
       const ctx = document.getElementById('radarChart').getContext('2d');
-      if (window.radarChartInstance) window.radarChartInstance.destroy();
+      if (window.radarChartInstance) {
+        window.radarChartInstance.destroy();
+      }
 
       window.radarChartInstance = new Chart(ctx, {
         type: 'radar',
@@ -69,24 +67,31 @@
               label: "Programmation",
               data: progData,
               borderColor: "rgb(255, 99, 132)",
-              backgroundColor: "rgba(255, 99, 132, 0.2)"
+              backgroundColor: "rgba(255, 99, 132, 0.2)",
+              pointBackgroundColor: "rgb(255, 99, 132)",
+              fill: true
             },
             {
               label: "Conception",
               data: concData,
               borderColor: "rgb(54, 162, 235)",
-              backgroundColor: "rgba(54, 162, 235, 0.2)"
+              backgroundColor: "rgba(54, 162, 235, 0.2)",
+              pointBackgroundColor: "rgb(54, 162, 235)",
+              fill: true
             },
             {
               label: "Travaux",
               data: travauxData,
               borderColor: "rgb(255, 206, 86)",
-              backgroundColor: "rgba(255, 206, 86, 0.2)"
+              backgroundColor: "rgba(255, 206, 86, 0.2)",
+              pointBackgroundColor: "rgb(255, 206, 86)",
+              fill: true
             }
           ]
         },
         options: {
           responsive: true,
+          maintainAspectRatio: false,
           scales: {
             r: {
               beginAtZero: true,
@@ -95,25 +100,27 @@
                 stepSize: 1
               },
               pointLabels: {
-                font: { size: 14, weight: 'bold' },
-                padding: 20
-              },
-              grid: {
-                color: "#ccc"
+                font: { size: 14 }
               }
             }
           },
           plugins: {
             legend: {
-              position: 'top',
-              labels: {
-                font: { size: 16 }
-              }
+              position: 'top'
             }
           }
         }
       });
     }
+
+    grist.ready();
+
+    grist.onRecords((records) => {
+      if (!records.length) return;
+      drawRadarChart(records);
+    });
   </script>
+
 </body>
 </html>
+
