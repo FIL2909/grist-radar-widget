@@ -2,16 +2,18 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <title>Radar Chart Widget Thématiques</title>
+  <title>Radar Chart - Par Sous-thématique</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
   <style>
     body {
       margin: 0;
+      background: #f8f8f8;
+      font-family: sans-serif;
       display: flex;
       justify-content: center;
-      background: #f8f8f8;
-      padding: 30px;
+      align-items: center;
+      height: 100vh;
     }
     #chartContainer {
       width: 800px;
@@ -22,8 +24,8 @@
       box-shadow: 0 4px 12px rgba(0,0,0,0.1);
     }
     canvas {
-      width: 700px !important;
-      height: 700px !important;
+      width: 100% !important;
+      height: 100% !important;
     }
   </style>
 </head>
@@ -33,200 +35,85 @@
   </div>
 
   <script>
-    const subThemes = [
-      "SMDD - Gouvernance",
-      "SMDD - Education",
-      "GES - Énergie",
-      "GES - Matériaux",
-      "Territoire - Mobilité",
-      "Territoire - Réversibilité",
-      "Santé - Air intérieur",
-      "Santé - Confort visuel",
-      "Santé - Confort thermique",
-      "Biodiv - Faune flore",
-      "Biodiv - Eau",
-      "Patrimoine - Entretien",
-      "Patrimoine - Adaptabilité",
-      "Patrimoine - Pérennité"
-    ];
+    grist.ready();
 
-    const themeMap = {
+    const themeColors = {
       "SMDD": "rgba(255, 99, 132, 0.1)",
       "GES": "rgba(54, 162, 235, 0.1)",
       "Territoire": "rgba(255, 206, 86, 0.1)",
-      "Santé": "rgba(75, 192, 192, 0.1)",
+      "Santé & Protec écosyst": "rgba(75, 192, 192, 0.1)",
       "Biodiv": "rgba(153, 102, 255, 0.1)",
       "Patrimoine": "rgba(255, 159, 64, 0.1)"
     };
 
-    const subThemeToTheme = subTheme => {
-      if (subTheme.startsWith("SMDD")) return "SMDD";
-      if (subTheme.startsWith("GES")) return "GES";
-      if (subTheme.startsWith("Territoire")) return "Territoire";
-      if (subTheme.startsWith("Santé")) return "Santé";
-      if (subTheme.startsWith("Biodiv")) return "Biodiv";
-      if (subTheme.startsWith("Patrimoine")) return "Patrimoine";
-      return null;
-    };
-
-    // Plugin pour fond coloré en parts de gâteau
-    const backgroundPlugin = {
-      id: 'backgroundSectors',
-      beforeDatasetsDraw(chart) {
-        const { ctx, chartArea, scales } = chart;
-        const centerX = chartArea.left + (chartArea.right - chartArea.left) / 2;
-        const centerY = chartArea.top + (chartArea.bottom - chartArea.top) / 2;
-        const radius = scales.r.drawingArea;
-        const angleStep = (Math.PI * 2) / subThemes.length;
-
-        ctx.save();
-
-        subThemes.forEach((label, i) => {
-          const startAngle = -Math.PI / 2 + i * angleStep;
-          const endAngle = startAngle + angleStep;
-          const theme = subThemeToTheme(label);
-          const color = themeMap[theme] || "rgba(0,0,0,0.05)";
-
-          ctx.beginPath();
-          ctx.moveTo(centerX, centerY);
-          ctx.arc(centerX, centerY, radius, startAngle, endAngle);
-          ctx.closePath();
-          ctx.fillStyle = color;
-          ctx.fill();
-        });
-
-        ctx.restore();
-      }
-    };
-
     let radarChartInstance = null;
 
-    function createRadarChart(progData, concData, travauxData) {
-      const ctx = document.getElementById('radarChart').getContext('2d');
+    function drawRadarChart(records) {
+      const labels = records.map(r => r["ST ref"]);
+      const dataProg = records.map(r => r["Programmation/5"] || 0);
+      const dataConc = records.map(r => r["Conception/5"] || 0);
+      const dataTrav = records.map(r => r["Travaux5"] || 0);
+
+      const ctx = document.getElementById("radarChart").getContext("2d");
 
       if (radarChartInstance) radarChartInstance.destroy();
 
-      const chartData = {
-        labels: subThemes,
-        datasets: [
-          {
-            label: "Programmation",
-            data: progData,
-            borderColor: "rgb(255, 99, 132)",
-            backgroundColor: "transparent",
-            pointBackgroundColor: "rgb(255, 99, 132)",
-            fill: false,
-            pointRadius: 5,
-            tension: 0.3
-          },
-          {
-            label: "Conception",
-            data: concData,
-            borderColor: "rgb(54, 162, 235)",
-            backgroundColor: "transparent",
-            pointBackgroundColor: "rgb(54, 162, 235)",
-            fill: false,
-            pointRadius: 5,
-            tension: 0.3
-          },
-          {
-            label: "Travaux",
-            data: travauxData,
-            borderColor: "rgb(255, 206, 86)",
-            backgroundColor: "transparent",
-            pointBackgroundColor: "rgb(255, 206, 86)",
-            fill: false,
-            pointRadius: 5,
-            tension: 0.3
-          }
-        ]
-      };
-
-      const chartOptions = {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: {
-          r: {
-            beginAtZero: true,
-            max: 9,  // ajuste selon ta note max dans la table
-            ticks: {
-              stepSize: 1,
-              font: { size: 14 },
-              backdropColor: 'transparent'
-            },
-            pointLabels: {
-              font: { size: 14, weight: 'bold' },
-              padding: 30
-            },
-            grid: {
-              color: "#ccc"
-            }
-          }
-        },
-        plugins: {
-          legend: {
-            position: 'top',
-            labels: {
-              font: { size: 16 }
-            }
-          },
-          tooltip: {
-            enabled: true,
-            bodyFont: { size: 14 }
-          }
-        }
-      };
-
       radarChartInstance = new Chart(ctx, {
         type: 'radar',
-        data: chartData,
-        options: chartOptions,
-        plugins: [backgroundPlugin]
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: "Notes Programmation",
+              data: dataProg,
+              borderColor: "rgb(255, 99, 132)",
+              backgroundColor: "rgba(255, 99, 132, 0.2)"
+            },
+            {
+              label: "Notes Conception",
+              data: dataConc,
+              borderColor: "rgb(54, 162, 235)",
+              backgroundColor: "rgba(54, 162, 235, 0.2)"
+            },
+            {
+              label: "Notes Travaux",
+              data: dataTrav,
+              borderColor: "rgb(255, 206, 86)",
+              backgroundColor: "rgba(255, 206, 86, 0.2)"
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            r: {
+              beginAtZero: true,
+              max: 5,
+              ticks: {
+                stepSize: 1,
+                font: { size: 14 }
+              },
+              pointLabels: {
+                font: { size: 14, weight: "bold" }
+              }
+            }
+          },
+          plugins: {
+            legend: {
+              position: "top",
+              labels: { font: { size: 16 } }
+            }
+          }
+        }
       });
     }
 
-    // Fonction pour extraire la note dans le record
-    // Elle cherche la colonne correspondant à la sous-thématique ET la phase (Programmation, Conception, Travaux)
-    function getNote(record, subTheme, phase) {
-      // Les colonnes ont le format par exemple :
-      // "SMDD - Note Programmation" pour SMDD, ou
-      // "GES - Note Programmation - Energie"
-      // Dans ton cas, on va chercher une colonne qui contient la sous-thématique et la phase
-
-      // On normalise les noms pour chercher
-      const phaseKey = phase;
-      // Pour chaque clé dans record, on regarde si elle correspond à la sous-thème et phase
-      for (const colName in record) {
-        const normalizedCol = colName.toLowerCase();
-        const normalizedSub = subTheme.toLowerCase();
-        const normalizedPhase = phaseKey.toLowerCase();
-
-        // On simplifie en cherchant que la sous-thématique (ex: "smdd - gouvernance") + phase (programmation)
-        // Car les colonnes ont des noms parfois longs (ex: "SMDD - Note Programmation" ou "Territoire - Note Programmation - économie de projet durable")
-        // Ici on vérifie si colName contient à la fois subTheme (sans "Note") et phase
-        if (
-          normalizedCol.includes(normalizedPhase) &&
-          normalizedCol.includes(normalizedSub.replace(/ - /g, " ")) // un peu de tolérance sur espaces
-        ) {
-          return record[colName] || 0;
-        }
-      }
-      return 0; // par défaut 0 si non trouvé
-    }
-
-    grist.ready();
-
-    grist.onRecord(record => {
-      if (!record) return;
-
-      // Pour chaque sous-thème, on récupère la note pour les 3 phases
-      const programmationData = subThemes.map(st => getNote(record, st, "Programmation"));
-      const conceptionData = subThemes.map(st => getNote(record, st, "Conception"));
-      const travauxData = subThemes.map(st => getNote(record, st, "Travaux"));
-
-      createRadarChart(programmationData, conceptionData, travauxData);
+    grist.onRecords((records) => {
+      if (!records.length) return;
+      drawRadarChart(records);
     });
-
   </script>
 </body>
 </html>
+
