@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Radar Chart Test</title>
+  <title>Radar Chart avec données Grist</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body {
@@ -24,17 +24,30 @@
 </head>
 <body>
 
-  <h1>Radar Chart Example avec valeurs manquantes</h1>
+  <h1>Radar Chart Example avec données Grist</h1>
   <canvas id="radarChart" width="600" height="600"></canvas>
 
-  <script>
-    // Simuler les données de ta table avec des valeurs null
-    const records = [
-      { "ST ref": "Programmation", "Programmation/5": 4, "Conception/5": 3, "Travaux/5": null },
-      { "ST ref": "Conception", "Programmation/5": 2, "Conception/5": null, "Travaux/5": 5 },
-      { "ST ref": "Travaux", "Programmation/5": null, "Conception/5": 4, "Travaux/5": 3 },
-      { "ST ref": "Tests", "Programmation/5": 5, "Conception/5": 2, "Travaux/5": 4 }
-    ];
+  <script type="module">
+    import { GristApi } from "https://unpkg.com/@gristlabs/grist-widget-api/dist/index.js";
+
+    async function fetchGristData() {
+      const api = new GristApi();
+
+      // Récupérer les données de la table "Test_Resume"
+      // Assure-toi que le nom est exactement celui de ta table dans Grist
+      const table = await api.docAPI.fetchTable("Test_Resume");
+
+      // Récupérer les colonnes désirées
+      // Ici on suppose que tes colonnes sont nommées exactement comme ça
+      const records = table.records.map(row => ({
+        "ST ref": row["ST ref"],
+        "Programmation/5": row["Programmation/5"],
+        "Conception/5": row["Conception/5"],
+        "Travaux/5": row["Travaux/5"],
+      }));
+
+      return records;
+    }
 
     function drawRadarChart(records) {
       const labels = [];
@@ -52,7 +65,6 @@
         }
       }
 
-      // Nettoyer l'ancienne instance si existante
       if (window.radarChartInstance) {
         window.radarChartInstance.destroy();
       }
@@ -93,39 +105,32 @@
           responsive: true,
           scales: {
             r: {
-              angleLines: {
-                color: '#ccc',
-              },
-              grid: {
-                color: '#ddd',
-              },
+              angleLines: { color: '#ccc' },
+              grid: { color: '#ddd' },
               suggestedMin: 0,
               suggestedMax: 5,
-              ticks: {
-                stepSize: 1,
-                color: '#444',
-              },
-              pointLabels: {
-                color: '#444',
-                font: { size: 14 }
-              }
+              ticks: { stepSize: 1, color: '#444' },
+              pointLabels: { color: '#444', font: { size: 14 } }
             },
           },
           plugins: {
-            legend: {
-              position: 'top',
-              labels: {
-                color: '#333',
-                font: { size: 14 }
-              }
-            },
+            legend: { position: 'top', labels: { color: '#333', font: { size: 14 } } }
           },
         },
       });
     }
 
-    drawRadarChart(records);
+    (async () => {
+      try {
+        const records = await fetchGristData();
+        drawRadarChart(records);
+      } catch (err) {
+        console.error("Erreur lors de la récupération des données Grist:", err);
+        // En cas d'erreur, tu peux afficher des données de secours ou un message d'erreur ici.
+      }
+    })();
   </script>
 
 </body>
 </html>
+
