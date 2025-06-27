@@ -2,25 +2,30 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <title>Radar Chart - Sous-thématiques</title>
+  <title>Radar Chart Widget Thématiques</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
   <style>
     body {
       margin: 0;
-      padding: 40px;
-      background: #f0f0f0;
-      font-family: Arial, sans-serif;
       display: flex;
       justify-content: center;
+      background: #f8f8f8;
+      padding: 30px;
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      user-select: none;
     }
     #chartContainer {
-      background: white;
-      padding: 40px;
-      border-radius: 16px;
-      box-shadow: 0 0 15px rgba(0,0,0,0.1);
       width: 800px;
       height: 800px;
+      background: white;
+      border-radius: 16px;
+      padding: 40px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      appearance: none;
     }
     canvas {
       width: 700px !important;
@@ -29,16 +34,20 @@
   </style>
 </head>
 <body>
-
-  <div id="chartContainer">
-    <canvas id="radarChart"></canvas>
+  <div id="chartContainer" role="region" aria-label="Graphique Radar des Thématiques">
+    <canvas id="radarChart" aria-describedby="chartDescription"></canvas>
+    <p id="chartDescription" style="display:none;">
+      Ce graphique radar montre les notes ramenées sur 5 pour chaque sous-thématique, pour les phases Programmation, Conception et Travaux.
+    </p>
   </div>
 
   <script>
-    function drawRadarChart(records) {
-      console.log("ST ref list:", records.map(r => r["ST ref"]));
-      console.log("Programmation/5 values:", records.map(r => r["Programmation/5"]));
+    // Variable globale du chart pour pouvoir le détruire/recréer
+    let radarChartInstance = null;
 
+    // Fonction qui construit et affiche le radar chart
+    function drawRadarChart(records) {
+      // Récupère labels et données depuis la table
       const labels = [];
       const progData = [];
       const concData = [];
@@ -54,11 +63,12 @@
       }
 
       const ctx = document.getElementById('radarChart').getContext('2d');
-      if (window.radarChartInstance) {
-        window.radarChartInstance.destroy();
+
+      if (radarChartInstance) {
+        radarChartInstance.destroy();
       }
 
-      window.radarChartInstance = new Chart(ctx, {
+      radarChartInstance = new Chart(ctx, {
         type: 'radar',
         data: {
           labels: labels,
@@ -68,24 +78,27 @@
               data: progData,
               borderColor: "rgb(255, 99, 132)",
               backgroundColor: "rgba(255, 99, 132, 0.2)",
-              pointBackgroundColor: "rgb(255, 99, 132)",
-              fill: true
+              pointRadius: 5,
+              fill: true,
+              tension: 0.3,
             },
             {
               label: "Conception",
               data: concData,
               borderColor: "rgb(54, 162, 235)",
               backgroundColor: "rgba(54, 162, 235, 0.2)",
-              pointBackgroundColor: "rgb(54, 162, 235)",
-              fill: true
+              pointRadius: 5,
+              fill: true,
+              tension: 0.3,
             },
             {
               label: "Travaux",
               data: travauxData,
               borderColor: "rgb(255, 206, 86)",
               backgroundColor: "rgba(255, 206, 86, 0.2)",
-              pointBackgroundColor: "rgb(255, 206, 86)",
-              fill: true
+              pointRadius: 5,
+              fill: true,
+              tension: 0.3,
             }
           ]
         },
@@ -97,30 +110,41 @@
               beginAtZero: true,
               max: 5,
               ticks: {
-                stepSize: 1
+                stepSize: 1,
+                font: { size: 14 },
+                backdropColor: 'transparent'
               },
               pointLabels: {
-                font: { size: 14 }
+                font: { size: 14, weight: 'bold' },
+                padding: 20
+              },
+              grid: {
+                color: "#ccc"
               }
             }
           },
           plugins: {
             legend: {
-              position: 'top'
+              position: 'top',
+              labels: { font: { size: 16 } }
+            },
+            tooltip: {
+              enabled: true,
+              bodyFont: { size: 14 }
             }
           }
         }
       });
     }
 
+    // Quand Grist est prêt, on récupère les données de la table "ST ref"
     grist.ready();
 
     grist.onRecords((records) => {
-      if (!records.length) return;
+      if (!records || records.length === 0) return;
       drawRadarChart(records);
     });
-  </script>
 
+  </script>
 </body>
 </html>
-
