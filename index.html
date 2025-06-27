@@ -50,9 +50,9 @@
 
     function drawRadarChart(records) {
       const labels = records.map(r => r["ST ref"]);
-      const dataProg = records.map(r => r["Programmation/5"] || 0);
-      const dataConc = records.map(r => r["Conception/5"] || 0);
-      const dataTrav = records.map(r => r["Travaux5"] || 0);
+      const dataProg = records.map(r => Number(r["Programmation/5"]) || 0);
+      const dataConc = records.map(r => Number(r["Conception/5"]) || 0);
+      const dataTrav = records.map(r => Number(r["Travaux5"]) || 0);
 
       const ctx = document.getElementById("radarChart").getContext("2d");
 
@@ -110,6 +110,7 @@
     }
 
     grist.onRecords((records) => {
+      console.log("records:", records);
       if (!records.length) return;
       drawRadarChart(records);
     });
