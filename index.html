@@ -2,60 +2,42 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <title>Radar Chart avec valeurs null</title>
+  <title>Radar Chart</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    body {
-      margin: 0;
-      display: flex;
-      justify-content: center;
-      background: #f8f8f8;
-      padding: 30px;
-    }
-    #chartContainer {
-      width: 800px;
-      height: 800px;
-      background: white;
-      border-radius: 16px;
-      padding: 40px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    }
     canvas {
-      width: 700px !important;
-      height: 700px !important;
+      max-width: 700px;
+      max-height: 700px;
     }
   </style>
 </head>
 <body>
-  <div id="chartContainer">
-    <canvas id="radarChart"></canvas>
-  </div>
+  <h2>Évaluation par sous-thématique</h2>
+  <canvas id="radarChart"></canvas>
 
   <script>
-    // Simule les données reçues depuis ta table "ST ref"
-    // Les valeurs null simulent les absences
-    const records = [
-      { "ST ref": "SMDD - Gouvernance", "Programmation/5": 4.3, "Conception/5": null, "Travaux/5": 3.7 },
-      { "ST ref": "SMDD - Education", "Programmation/5": null, "Conception/5": 4.1, "Travaux/5": null },
-      { "ST ref": "GES - Énergie", "Programmation/5": 3.8, "Conception/5": 4.0, "Travaux/5": 4.5 },
-      { "ST ref": "GES - Matériaux", "Programmation/5": 4.7, "Conception/5": null, "Travaux/5": 4.2 },
-      // Ajoute tes autres sous-thèmes ici
-    ];
-
-    let radarChartInstance = null;
+    let radarChartInstance;
 
     function drawRadarChart(records) {
+      console.log("Records dans drawRadarChart :", records);
+
       const labels = [];
       const progData = [];
       const concData = [];
       const travauxData = [];
 
       for (const r of records) {
-        if (r["ST ref"]) {
-          labels.push(r["ST ref"]);
-          progData.push(typeof r["Programmation/5"] === 'number' && !isNaN(r["Programmation/5"]) ? r["Programmation/5"] : null);
-          concData.push(typeof r["Conception/5"] === 'number' && !isNaN(r["Conception/5"]) ? r["Conception/5"] : null);
-          travauxData.push(typeof r["Travaux/5"] === 'number' && !isNaN(r["Travaux/5"]) ? r["Travaux/5"] : null);
+        const label = r["ST ref"];
+        if (label) {
+          labels.push(label);
+
+          const prog = typeof r["Programmation/5"] === 'number' ? r["Programmation/5"] : null;
+          const conc = typeof r["Conception/5"] === 'number' ? r["Conception/5"] : null;
+          const trav = typeof r["Travaux/5"] === 'number' ? r["Travaux/5"] : null;
+
+          progData.push(prog);
+          concData.push(conc);
+          travauxData.push(trav);
         }
       }
 
@@ -64,7 +46,6 @@
       }
 
       const ctx = document.getElementById('radarChart').getContext('2d');
-
       radarChartInstance = new Chart(ctx, {
         type: 'radar',
         data: {
@@ -75,69 +56,55 @@
               data: progData,
               borderColor: "rgb(255, 99, 132)",
               backgroundColor: "rgba(255, 99, 132, 0.2)",
-              spanGaps: false, // Ne relie pas les points si valeur manquante
-              pointRadius: 5,
-              tension: 0.3
+              spanGaps: true,
             },
             {
               label: "Conception",
               data: concData,
               borderColor: "rgb(54, 162, 235)",
               backgroundColor: "rgba(54, 162, 235, 0.2)",
-              spanGaps: false,
-              pointRadius: 5,
-              tension: 0.3
+              spanGaps: true,
             },
             {
               label: "Travaux",
               data: travauxData,
-              borderColor: "rgb(255, 206, 86)",
-              backgroundColor: "rgba(255, 206, 86, 0.2)",
-              spanGaps: false,
-              pointRadius: 5,
-              tension: 0.3
+              borderColor: "rgb(75, 192, 192)",
+              backgroundColor: "rgba(75, 192, 192, 0.2)",
+              spanGaps: true,
             }
           ]
         },
         options: {
           responsive: true,
-          maintainAspectRatio: false,
           scales: {
             r: {
               beginAtZero: true,
               max: 5,
               ticks: {
-                stepSize: 1,
-                font: { size: 14 },
-                backdropColor: 'transparent'
-              },
-              pointLabels: {
-                font: { size: 14, weight: 'bold' },
-                padding: 30
-              },
-              grid: {
-                color: "#ccc"
+                stepSize: 1
               }
             }
           },
           plugins: {
             legend: {
-              position: 'top',
-              labels: {
-                font: { size: 16 }
-              }
+              position: 'top'
             },
-            tooltip: {
-              enabled: true,
-              bodyFont: { size: 14 }
+            title: {
+              display: false
             }
           }
         }
       });
     }
 
-    // Simule l'appel de la fonction de dessin avec les données
-    drawRadarChart(records);
+    grist.ready({
+      columns: ["ST ref", "Programmation/5", "Conception/5", "Travaux/5"]
+    });
+
+    grist.onRecords((records) => {
+      console.log("Données Grist reçues :", records);
+      drawRadarChart(records);
+    });
   </script>
 </body>
 </html>
