@@ -2,9 +2,8 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <title>Radar Chart Widget Thématiques</title>
+  <title>Radar Chart avec valeurs null</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
   <style>
     body {
       margin: 0;
@@ -33,6 +32,16 @@
   </div>
 
   <script>
+    // Simule les données reçues depuis ta table "ST ref"
+    // Les valeurs null simulent les absences
+    const records = [
+      { "ST ref": "SMDD - Gouvernance", "Programmation/5": 4.3, "Conception/5": null, "Travaux/5": 3.7 },
+      { "ST ref": "SMDD - Education", "Programmation/5": null, "Conception/5": 4.1, "Travaux/5": null },
+      { "ST ref": "GES - Énergie", "Programmation/5": 3.8, "Conception/5": 4.0, "Travaux/5": 4.5 },
+      { "ST ref": "GES - Matériaux", "Programmation/5": 4.7, "Conception/5": null, "Travaux/5": 4.2 },
+      // Ajoute tes autres sous-thèmes ici
+    ];
+
     let radarChartInstance = null;
 
     function drawRadarChart(records) {
@@ -44,16 +53,11 @@
       for (const r of records) {
         if (r["ST ref"]) {
           labels.push(r["ST ref"]);
-          progData.push(typeof r["Programmation/5"] === 'number' ? r["Programmation/5"] : 0);
-          concData.push(typeof r["Conception/5"] === 'number' ? r["Conception/5"] : 0);
-          travauxData.push(typeof r["Travaux/5"] === 'number' ? r["Travaux/5"] : 0);
+          progData.push(typeof r["Programmation/5"] === 'number' && !isNaN(r["Programmation/5"]) ? r["Programmation/5"] : null);
+          concData.push(typeof r["Conception/5"] === 'number' && !isNaN(r["Conception/5"]) ? r["Conception/5"] : null);
+          travauxData.push(typeof r["Travaux/5"] === 'number' && !isNaN(r["Travaux/5"]) ? r["Travaux/5"] : null);
         }
       }
-
-      console.log("Labels:", labels);
-      console.log("Programmation/5:", progData);
-      console.log("Conception/5:", concData);
-      console.log("Travaux/5:", travauxData);
 
       if (radarChartInstance) {
         radarChartInstance.destroy();
@@ -71,27 +75,27 @@
               data: progData,
               borderColor: "rgb(255, 99, 132)",
               backgroundColor: "rgba(255, 99, 132, 0.2)",
-              fill: true,
+              spanGaps: false, // Ne relie pas les points si valeur manquante
               pointRadius: 5,
-              tension: 0.3,
+              tension: 0.3
             },
             {
               label: "Conception",
               data: concData,
               borderColor: "rgb(54, 162, 235)",
               backgroundColor: "rgba(54, 162, 235, 0.2)",
-              fill: true,
+              spanGaps: false,
               pointRadius: 5,
-              tension: 0.3,
+              tension: 0.3
             },
             {
               label: "Travaux",
               data: travauxData,
               borderColor: "rgb(255, 206, 86)",
               backgroundColor: "rgba(255, 206, 86, 0.2)",
-              fill: true,
+              spanGaps: false,
               pointRadius: 5,
-              tension: 0.3,
+              tension: 0.3
             }
           ]
         },
@@ -105,11 +109,11 @@
               ticks: {
                 stepSize: 1,
                 font: { size: 14 },
-                backdropColor: 'transparent',
+                backdropColor: 'transparent'
               },
               pointLabels: {
                 font: { size: 14, weight: 'bold' },
-                padding: 20,
+                padding: 30
               },
               grid: {
                 color: "#ccc"
@@ -119,7 +123,9 @@
           plugins: {
             legend: {
               position: 'top',
-              labels: { font: { size: 16 } }
+              labels: {
+                font: { size: 16 }
+              }
             },
             tooltip: {
               enabled: true,
@@ -130,12 +136,8 @@
       });
     }
 
-    grist.ready();
-
-    grist.onRecords((records) => {
-      if (!records.length) return;
-      drawRadarChart(records);
-    });
+    // Simule l'appel de la fonction de dessin avec les données
+    drawRadarChart(records);
   </script>
 </body>
 </html>
