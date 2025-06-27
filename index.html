@@ -1,80 +1,92 @@
 <!DOCTYPE html>
-<html lang="fr">
-<head>
-  <meta charset="UTF-8" />
-  <title>Radar Chart Debug</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <style>
-    canvas {
-      max-width: 700px;
-      max-height: 700px;
-    }
-  </style>
-</head>
-<body>
-  <h2>Évaluation par sous-thématique</h2>
-  <canvas id="radarChart"></canvas>
-
-  <script>
-    let radarChartInstance = null;
-
-    function drawRadarChart(records) {
-      console.log("🔍 drawRadarChart reçoit ces records :", records);
-
-      const labels = [], progData = [], concData = [], travauxData = [];
-
-      for (const r of records) {
-        console.log("→ Record:", r);
-        const label = r["ST ref"];
-        console.log("   ST ref =", label);
-        labels.push(label);
-
-        const prog = r["Programmation/5"];
-        const conc = r["Conception/5"];
-        const trav = r["Travaux/5"];
-        console.log(`   Notes → prog: ${prog}, conc: ${conc}, trav: ${trav}`);
-
-        progData.push(typeof prog === 'number' ? prog : null);
-        concData.push(typeof conc === 'number' ? conc : null);
-        travauxData.push(typeof trav === 'number' ? trav : null);
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>Radar Grist</title>
+    <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+      body {
+        font-family: sans-serif;
+        padding: 10px;
       }
-
-      console.log("Labels finaux:", labels);
-      console.log("Datasets finaux:", { progData, concData, travauxData });
-
-      if (radarChartInstance) {
-        radarChartInstance.destroy();
-        radarChartInstance = null;
+      canvas {
+        max-width: 100%;
       }
+    </style>
+  </head>
+  <body>
+    <h3>Évaluation par sous-thématique</h3>
+    <canvas id="radarChart"></canvas>
 
-      const ctx = document.getElementById('radarChart').getContext('2d');
-      radarChartInstance = new Chart(ctx, {
-        type: 'radar',
-        data: { labels, datasets: [
-          { label: "Programmation", data: progData, borderColor: "rgb(255, 99, 132)", backgroundColor: "rgba(255,99,132,0.2)", spanGaps: true },
-          { label: "Conception",     data: concData, borderColor: "rgb(54, 162, 235)", backgroundColor: "rgba(54,162,235,0.2)", spanGaps: true },
-          { label: "Travaux",        data: travauxData, borderColor: "rgb(75, 192, 192)", backgroundColor: "rgba(75,192,192,0.2)", spanGaps: true }
-        ]},
-        options: {
-          scales: { r: { beginAtZero: true, max: 5, ticks: { stepSize: 1 } } },
-          plugins: { legend: { position: 'top' } }
+    <script>
+      function drawRadarChart(records) {
+        const labels = [];
+        const progData = [];
+        const concData = [];
+        const travauxData = [];
+
+        for (const r of records) {
+          const label = r["ST ref"];
+          const p = r["Programmation/5"];
+          const c = r["Conception/5"];
+          const t = r["Travaux/5"];
+
+          if (label != null) {
+            labels.push(label);
+            progData.push(typeof p === 'number' ? p : 0);
+            concData.push(typeof c === 'number' ? c : 0);
+            travauxData.push(typeof t === 'number' ? t : 0);
+          }
         }
-      });
-    }
 
-    console.log("🔗 Setup grist...");
-    grist.ready({
-      columns: ["ST ref", "Programmation/5", "Conception/5", "Travaux/5"]
-    });
+        const ctx = document.getElementById("radarChart").getContext("2d");
+        if (window.radarChartInstance) {
+          window.radarChartInstance.destroy();
+        }
 
-    grist.onRecords((records) => {
-      console.log("✅ D’abord, records reçus :", records);
-      if (!records || records.length === 0) {
-        console.warn("⚠️ Aucun record reçu par le widget.");
-        return;
+        window.radarChartInstance = new Chart(ctx, {
+          type: "radar",
+          data: {
+            labels,
+            datasets: [
+              {
+                label: "Programmation",
+                data: progData,
+                borderColor: "rgb(255, 99, 132)",
+                backgroundColor: "rgba(255, 99, 132, 0.2)"
+              },
+              {
+                label: "Conception",
+                data: concData,
+                borderColor: "rgb(54, 162, 235)",
+                backgroundColor: "rgba(54, 162, 235, 0.2)"
+              },
+              {
+                label: "Travaux",
+                data: travauxData,
+                borderColor: "rgb(75, 192, 192)",
+                backgroundColor: "rgba(75, 192, 192, 0.2)"
+              }
+            ]
+          },
+          options: {
+            scales: {
+              r: {
+                suggestedMin: 0,
+                suggestedMax: 5
+              }
+            }
+          }
+        });
       }
-      drawRadarChart(records);
-    });
-  </script>
-</body>
+
+      // ✅ Cette partie est cruciale pour que Grist injecte les données :
+      grist.onRecords((records) => {
+        console.log("✅ Records reçus :", records);
+        if (!records || !records.length) return;
+        drawRadarChart(records);
+      });
+    </script>
+  </body>
 </html>
